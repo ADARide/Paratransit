@@ -738,14 +738,35 @@ def display_question():
     next_button = tk.Button(frame, text="Next", command=next_question)
     next_button.pack(pady=20)
 
-root = tk.Tk()
-root.title("Paratransit Eligibility Questionnaire")
+import streamlit as st
 
-frame = tk.Frame(root, padx=20, pady=20)
-frame.pack()
+# Initialize session state for questionnaire
+if "current_question_index" not in st.session_state:
+    st.session_state["current_question_index"] = 0
+if "responses" not in st.session_state:
+    st.session_state["responses"] = {}
 
-current_question_index = 0
-var = tk.IntVar()
+# Function to display questions
+def display_question():
+    current_index = st.session_state["current_question_index"]
+    question_key, question_data = randomized_questions[current_index]
 
-display_question()
-root.mainloop()
+    st.subheader(f"Question {current_index + 1}: {question_data['text']}")
+    selected_option = st.radio(
+        "Select an option:",
+        options=list(question_data["options"].values()),
+        key=f"question_{current_index}"
+    )
+
+    if st.button("Next"):
+        # Save the response and move to the next question
+        response_value = list(question_data["options"].keys())[list(question_data["options"].values()).index(selected_option)]
+        st.session_state["responses"][question_key] = response_value
+        st.session_state["current_question_index"] += 1
+
+# Main questionnaire loop
+if st.session_state["current_question_index"] < len(randomized_questions):
+    display_question()
+else:
+    st.success("You have completed the questionnaire!")
+    st.write("Responses:", st.session_state["responses"])
