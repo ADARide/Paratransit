@@ -644,23 +644,24 @@ if current_index < len(randomized_questions):
     st.subheader(f"Question {current_index + 1}/{len(randomized_questions)}")
     st.write(question_data["text"])
 
-    selected_option = st.radio(
-        "Select an option:",
-        options=list(question_data["options"].values()),
-        index=list(question_data["options"].values()).index(
-            question_data["options"].get(st.session_state["responses"].get(question_key, None))
-        ) if st.session_state["responses"].get(question_key, None) is not None else -1,
-        key=f"q_{current_index}"
-    )
+selected_option = st.radio(
+    "Select an option:",
+    options=list(question_data["options"].values()),
+    index=st.session_state["responses"].get(question_key, -1),  # Use saved response or default to -1
+    key=f"q_{current_index}"
+)
 
-    if st.button("Submit Answer"):
-        if selected_option == -1:
-            st.warning("Please select an option!")
-        else:
-            st.session_state["responses"][question_key] = list(question_data["options"].keys())[
-                list(question_data["options"].values()).index(selected_option)]
-            st.session_state["current_question_index"] += 1
-            st.experimental_rerun()
+if st.button("Submit Answer", key=f"submit_{current_index}"):
+    if selected_option == -1:
+        st.warning("Please select an option!")
+    else:
+        # Save the user's choice in the session state
+        st.session_state["responses"][question_key] = list(question_data["options"].keys())[
+            list(question_data["options"].values()).index(selected_option)
+        ]
+        # Move to the next question
+        st.session_state["current_question_index"] += 1
+        st.experimental_rerun()
 
 else:
     st.success("You have completed the questionnaire!")
