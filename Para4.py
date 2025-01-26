@@ -788,25 +788,25 @@ if st.session_state["demographics_completed"]:
         st.write(question_data["text"])
 
         # Persist selection for current question
-    if question_key not in st.session_state["responses"]:
-        st.session_state["responses"][question_key] = None  # Initialize with None
+        if question_key not in st.session_state["responses"]:
+            st.session_state["responses"][question_key] = None  # Initialize with None
 
-selected_option = st.radio(
-    "Select an option:",
-    options=list(question_data["options"].values()),
-    key=f"q_{current_index}"
-)
+        selected_option = st.radio(
+            "Select an option:",
+            options=list(question_data["options"].values()),
+            key=f"q_{current_index}"
+        )
 
-if st.button("Submit Answer"):
-    if selected_option is None:
-        st.warning("Please select an option before submitting!")
-    else:
-        st.session_state["responses"][question_key] = selected_option
-        st.session_state["current_question_index"] += 1
+        if st.button("Submit Answer"):
+            if selected_option is None:
+                st.warning("Please select an option before submitting!")
+            else:
+                st.session_state["responses"][question_key] = selected_option
+                st.session_state["current_question_index"] += 1
     else:
         st.success("You have completed the questionnaire!")
         st.write("Responses:", st.session_state["responses"])
 
-    # Add progress bar
-    progress = st.session_state["current_question_index"] / len(randomized_questions)
+# Add progress bar
+progress = st.session_state["current_question_index"] / len(randomized_questions)
 st.progress(progress)
