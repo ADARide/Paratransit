@@ -676,15 +676,28 @@ if st.button("Submit Answer", key=f"submit_{current_index}"):
         st.session_state["current_question_index"] += 1
         st.experimental_rerun()
 
-if st.button("Submit Answer", key=f"submit_{current_index}"):
-    if selected_option == -1:
+# Radio button for selecting an option
+selected_option = st.radio(
+    "Select an option:",
+    options=list(question_data["options"].values()),
+    index=(
+        list(question_data["options"].keys()).index(st.session_state["responses"].get(question_key, None))
+        if st.session_state["responses"].get(question_key, None) is not None
+        else 0
+    ),
+    key=f"radio_{current_index}"  # Unique key for the radio button
+)
+
+# Submit button to move to the next question
+if st.button("Submit Answer", key=f"button_{current_index}"):  # Ensure unique key
+    if selected_option is None:
         st.warning("Please select an option!")
     else:
-        # Save the user's choice in the session state
+        # Save the selected option to session state
         st.session_state["responses"][question_key] = list(question_data["options"].keys())[
             list(question_data["options"].values()).index(selected_option)
         ]
-        # Move to the next question
+        # Increment the question index
         st.session_state["current_question_index"] += 1
         st.experimental_rerun()
 
