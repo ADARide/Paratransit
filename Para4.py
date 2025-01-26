@@ -757,7 +757,7 @@ def display_question():
     question_key, question_data = randomized_questions[current_index]
 
     st.subheader(f"Question {current_index + 1}: {question_data['text']}")
-    if question_key not in st.session_state["responses"]:
+if question_key not in st.session_state["responses"]:
     st.session_state["responses"][question_key] = None  # Initialize with None
 
 selected_option = st.radio(
