@@ -757,16 +757,20 @@ def display_question():
     question_key, question_data = randomized_questions[current_index]
 
     st.subheader(f"Question {current_index + 1}: {question_data['text']}")
-    selected_option = st.radio(
-        "Select an option:",
-        options=list(question_data["options"].values()),
-        key=f"question_{current_index}"
-    )
+    if question_key not in st.session_state["responses"]:
+    st.session_state["responses"][question_key] = None  # Initialize with None
 
-    if st.button("Next"):
-        # Save the response and move to the next question
-        response_value = list(question_data["options"].keys())[list(question_data["options"].values()).index(selected_option)]
-        st.session_state["responses"][question_key] = response_value
+selected_option = st.radio(
+    "Select an option:",
+    options=list(question_data["options"].values()),
+    key=f"q_{current_index}"
+)
+
+if st.button("Submit Answer"):
+    if selected_option is None:
+        st.warning("Please select an option before submitting!")
+    else:
+        st.session_state["responses"][question_key] = selected_option
         st.session_state["current_question_index"] += 1
 
 # Main questionnaire loop
@@ -784,13 +788,21 @@ if st.session_state["demographics_completed"]:
         st.write(question_data["text"])
 
         # Persist selection for current question
-        selected_option = st.radio(
-            "Select an option:",
-            options=list(question_data["options"].values()),
-            index=st.session_state["responses"].get(question_key, -1),
-            key=f"q_{current_index}"
-        )
+       if question_key not in st.session_state["responses"]:
+    st.session_state["responses"][question_key] = None  # Initialize to None
 
+selected_option = st.radio(
+    "Select an option:",
+    options=list(question_data["options"].values()),
+    key=f"q_{current_index}"
+)
+
+if st.button("Submit Answer"):
+    if selected_option is None:
+        st.warning("Please select an option before submitting!")
+    else:
+        st.session_state["responses"][question_key] = selected_option
+        st.session_state["current_question_index"] += 1
         if st.button("Submit Answer"):
             st.session_state["responses"][question_key] = list(question_data["options"].keys())[list(question_data["options"].values()).index(selected_option)]
             st.session_state["current_question_index"] += 1
@@ -799,5 +811,5 @@ if st.session_state["demographics_completed"]:
         st.write("Responses:", st.session_state["responses"])
 
     # Add progress bar
-    progress = (st.session_state["current_question_index"] + 1) / len(randomized_questions)
-    st.progress(progress)
+    progress = st.session_state["current_question_index"] / len(randomized_questions)
+st.progress(progress)
