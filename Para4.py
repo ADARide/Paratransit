@@ -702,21 +702,28 @@ if st.button("Submit Answer", key=f"submit_{current_index}"):
         st.session_state["current_question_index"] += 1
         st.experimental_rerun()
 
-# Radio button for selecting an option
+# Ensure the response is stored in session state
+if question_key not in st.session_state["responses"]:
+    st.session_state["responses"][question_key] = None  # Initialize with None if not set
+
+# Dynamically set the index for the radio button
+default_index = (
+    list(question_data["options"].keys()).index(st.session_state["responses"][question_key])
+    if st.session_state["responses"][question_key] is not None
+    else -1  # No option selected
+)
+
+# Create the radio button without advancing questions automatically
 selected_option = st.radio(
     "Select an option:",
     options=list(question_data["options"].values()),
-    index=(
-        list(question_data["options"].keys()).index(st.session_state["responses"].get(question_key, None))
-        if st.session_state["responses"].get(question_key, None) is not None
-        else 0
-    ),
+    index=default_index if default_index != -1 else 0,
     key=f"radio_{current_index}"  # Unique key for the radio button
 )
 
 # Submit button to move to the next question
-if st.button("Submit Answer", key=f"button_{current_index}"):  # Ensure unique key
-    if selected_option is None:
+if st.button("Submit Answer", key=f"submit_{current_index}"):  # Ensure unique key
+    if selected_option == "":
         st.warning("Please select an option!")
     else:
         # Save the selected option to session state
@@ -726,6 +733,5 @@ if st.button("Submit Answer", key=f"button_{current_index}"):  # Ensure unique k
         # Increment the question index
         st.session_state["current_question_index"] += 1
         st.experimental_rerun()
-
 else:
     st.success("You have completed the questionnaire!")
