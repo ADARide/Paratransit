@@ -782,21 +782,26 @@ if "responses" not in st.session_state:
 if st.session_state["demographics_completed"]:
     current_index = st.session_state["current_question_index"]
 
+    # Ensure the current index is valid
     if current_index < len(randomized_questions):
-        question_key, question_data = randomized_questions[current_index]
+        question_key, question_data = randomized_questions[current_index]  # Define question_key here
+
+        # Display the question and its options
         st.subheader(f"Question {current_index + 1}/{len(randomized_questions)}")
         st.write(question_data["text"])
 
-        # Persist selection for current question
+        # Ensure the response key exists in session state
         if question_key not in st.session_state["responses"]:
-            st.session_state["responses"][question_key] = None  # Initialize with None
+            st.session_state["responses"][question_key] = None
 
+        # Display options as a radio button
         selected_option = st.radio(
             "Select an option:",
             options=list(question_data["options"].values()),
             key=f"q_{current_index}"
         )
 
+        # Handle "Submit Answer" button click
         if st.button("Submit Answer"):
             if selected_option is None:
                 st.warning("Please select an option before submitting!")
@@ -804,9 +809,10 @@ if st.session_state["demographics_completed"]:
                 st.session_state["responses"][question_key] = selected_option
                 st.session_state["current_question_index"] += 1
     else:
+        # All questions completed
         st.success("You have completed the questionnaire!")
         st.write("Responses:", st.session_state["responses"])
 
-# Add progress bar
-progress = st.session_state["current_question_index"] / len(randomized_questions)
-st.progress(progress)
+    # Add a progress bar
+    progress = st.session_state["current_question_index"] / len(randomized_questions)
+    st.progress(progress)
