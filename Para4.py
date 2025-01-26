@@ -1,55 +1,7 @@
 import streamlit as st
 import random
 
-# Define life expectancy for demographic evaluation
-LIFE_EXPECTANCY = {
-    "Male": 73,
-    "Female": 79,
-    "Other": 76  # Default life expectancy for non-binary/unspecified gender
-}
-
-# Collect applicant demographics
-applicant_info = {}
-
-def collect_applicant_info():
-    def submit_info():
-        try:
-            applicant_info["Name"] = name_entry.get().strip()
-            applicant_info["Age"] = int(age_entry.get().strip())
-            applicant_info["Gender"] = gender_var.get()
-            applicant_info["Mobility Device"] = mobility_var.get()
-            if not applicant_info["Name"] or not applicant_info["Gender"] or not applicant_info["Mobility Device"]:
-                raise ValueError
-            root.destroy()
-        except ValueError:
-            messagebox.showerror("Error", "Please fill out all fields correctly.")
-
-import streamlit as st
-
-if "demographics_completed" not in st.session_state:
-    st.session_state["demographics_completed"] = False
-if "applicant_info" not in st.session_state:
-    st.session_state["applicant_info"] = {}
-
-if not st.session_state["demographics_completed"]:
-    st.title("Applicant Demographics")
-
-    st.session_state["applicant_info"]["Name"] = st.text_input("Full Name:")
-    st.session_state["applicant_info"]["Age"] = st.number_input("Age:", min_value=0, step=1)
-    st.session_state["applicant_info"]["Gender"] = st.selectbox("Gender:", options=["Male", "Female", "Other"])
-    st.session_state["applicant_info"]["Mobility Device"] = st.selectbox("Do you use a mobility device?", options=["Yes", "No"])
-
-    if st.button("Submit Information"):
-        if not st.session_state["applicant_info"]["Name"] or not st.session_state["applicant_info"]["Age"] or not st.session_state["applicant_info"]["Gender"] or not st.session_state["applicant_info"]["Mobility Device"]:
-            st.warning("Please fill out all fields correctly.")
-        else:
-            st.session_state["demographics_completed"] = True
-            st.success("Demographics submitted!")
-
-# Call demographic collection
-collect_applicant_info()
-
-# Define the questions
+# Define questions
 questions = {
     "Q1": {
         "text": "How often do you use public transit?",
@@ -551,14 +503,17 @@ questions = {
             4: "Always"
         }
     }
-}  
+}
+
 # Shuffle the questions for randomness
 randomized_questions = list(questions.items())
 random.shuffle(randomized_questions)
 
+# Initialize responses and current index
 responses = {}
 current_question_index = 0
 
+# Calculate score and classify impairments
 def calculate_score(responses):
     score = 0
     middle_count = 0
@@ -607,18 +562,15 @@ def determine_eligibility(score, middle_count, total_questions, applicant_info):
     gender = applicant_info["Gender"]
     mobility_device = applicant_info["Mobility Device"]
 
-    if age > LIFE_EXPECTANCY.get(gender, 76):
+    if age > 76:
         return "Unconditional Eligibility"
-
-    if score >= 120:  # Threshold for high scores
+    if score >= 120:
         return "Unconditional Eligibility"
-
     if mobility_device == "Yes":
         return "Conditional Eligibility"
-
     if middle_count >= total_questions * 0.75:
         return "Ineligible"
-    elif 80 <= score < 120:  # Adjusted threshold for Conditional Eligibility
+    elif 80 <= score < 120:
         return "Conditional Eligibility"
     else:
         return "Ineligible"
@@ -675,144 +627,74 @@ def generate_justification(score, eligibility, middle_count, classifications, ca
     justification += f"- Total Score: {score}\n"
     justification += f"- Neutral Responses: {middle_count} out of {len(questions)} questions\n"
     justification += f"- Challenges Identified in: {', '.join(classifications) if classifications else 'None'}\n"
-    justification += (
-        f"- Age vs. Life Expectancy: {applicant_info['Age']} years old, expected lifespan for {applicant_info['Gender']} is {LIFE_EXPECTANCY.get(applicant_info['Gender'], 76)} years.\n"
-    )
 
     return justification
 
-def calculate_and_display_results():
-    score, middle_count = calculate_score(responses)
-    classifications, category_scores = classify_impairments_and_scores(responses)
-    eligibility = determine_eligibility(score, middle_count, len(questions), applicant_info)
-    pca_needed = determine_pca(responses)
-
-    justification = generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info)
-
-    for widget in frame.winfo_children():
-        widget.destroy()
-
-    result_label = tk.Label(
-        frame,
-        text=f"Overall Score: {score}\nEligibility: {eligibility}\nPCA Required: {pca_needed}",
-        wraplength=400,
-        justify="left",
-    )
-    result_label.pack(pady=10)
-
-    breakdown_label = tk.Label(frame, text=justification, wraplength=400, justify="left")
-    breakdown_label.pack(pady=10)
-
-    close_button = tk.Button(frame, text="Close", command=root.destroy)
-    close_button.pack(pady=20)
-
-def next_question():
-    global current_question_index, responses
-
-    selected_option = var.get()
-    if selected_option == -1:
-        messagebox.showwarning("Input Required", "Please select an option before proceeding.")
-        return
-
-    question_key = randomized_questions[current_question_index][0]
-    responses[question_key] = selected_option
-
-    current_question_index += 1
-
-    if current_question_index < len(randomized_questions):
-        display_question()
-    else:
-        calculate_and_display_results()
-
-def display_question():
-    global current_question_index
-
-    question_data = randomized_questions[current_question_index][1]
-
-    for widget in frame.winfo_children():
-        widget.destroy()
-
-    question_label = tk.Label(frame, text=question_data["text"], wraplength=400, justify="left")
-    question_label.pack(pady=10)
-
-    global var
-    var = tk.IntVar(value=-1)
-    for value, option in question_data["options"].items():
-        tk.Radiobutton(frame, text=option, variable=var, value=value).pack(anchor="w")
-
-    next_button = tk.Button(frame, text="Next", command=next_question)
-    next_button.pack(pady=20)
-
-import streamlit as st
-
-# Initialize session state for questionnaire
+# Collect demographics
 if "current_question_index" not in st.session_state:
     st.session_state["current_question_index"] = 0
 if "responses" not in st.session_state:
     st.session_state["responses"] = {}
+if "demographics_completed" not in st.session_state:
+    st.session_state["demographics_completed"] = False
 
-# Function to display questions
-def display_question():
-    current_index = st.session_state["current_question_index"]
-    question_key, question_data = randomized_questions[current_index]
+if not st.session_state["demographics_completed"]:
+    st.title("Applicant Demographics")
 
-    st.subheader(f"Question {current_index + 1}: {question_data['text']}")
-if question_key not in st.session_state["responses"]:
-    st.session_state["responses"][question_key] = None  # Initialize with None
+    st.session_state["applicant_info"] = {
+        "Name": st.text_input("Full Name:"),
+        "Age": st.number_input("Age:", min_value=0, step=1),
+        "Gender": st.selectbox("Gender:", ["Male", "Female", "Other"]),
+        "Mobility Device": st.selectbox("Do you use a mobility device?", ["Yes", "No"])
+    }
 
-selected_option = st.radio(
-    "Select an option:",
-    options=list(question_data["options"].values()),
-    key=f"q_{current_index}"
-)
+    if st.button("Submit Demographics"):
+        if not st.session_state["applicant_info"]["Name"] or not st.session_state["applicant_info"]["Age"]:
+            st.warning("Please fill out all fields correctly.")
+        else:
+            st.session_state["demographics_completed"] = True
+            st.success("Demographics submitted!")
 
-if st.button("Submit Answer"):
-    if selected_option is None:
-        st.warning("Please select an option before submitting!")
-    else:
-        st.session_state["responses"][question_key] = selected_option
-        st.session_state["current_question_index"] += 1
-
-# Main questionnaire loop
-if "current_question_index" not in st.session_state:
-    st.session_state["current_question_index"] = 0
-if "responses" not in st.session_state:
-    st.session_state["responses"] = {}
-
-if st.session_state["demographics_completed"]:
+# Display questions
+else:
     current_index = st.session_state["current_question_index"]
 
-    # Ensure the current index is valid
     if current_index < len(randomized_questions):
-        question_key, question_data = randomized_questions[current_index]  # Define question_key here
+        question_key, question_data = randomized_questions[current_index]
 
-        # Display the question and its options
         st.subheader(f"Question {current_index + 1}/{len(randomized_questions)}")
         st.write(question_data["text"])
 
-        # Ensure the response key exists in session state
         if question_key not in st.session_state["responses"]:
             st.session_state["responses"][question_key] = None
 
-        # Display options as a radio button
         selected_option = st.radio(
             "Select an option:",
             options=list(question_data["options"].values()),
             key=f"q_{current_index}"
         )
 
-        # Handle "Submit Answer" button click
         if st.button("Submit Answer"):
             if selected_option is None:
-                st.warning("Please select an option before submitting!")
+                st.warning("Please select an option!")
             else:
-                st.session_state["responses"][question_key] = selected_option
+                st.session_state["responses"][question_key] = list(question_data["options"].keys())[
+                    list(question_data["options"].values()).index(selected_option)]
                 st.session_state["current_question_index"] += 1
     else:
-        # All questions completed
-        st.success("You have completed the questionnaire!")
-        st.write("Responses:", st.session_state["responses"])
+        score, middle_count = calculate_score(st.session_state["responses"])
+        classifications, category_scores = classify_impairments_and_scores(st.session_state["responses"])
+        eligibility = determine_eligibility(score, middle_count, len(questions), st.session_state["applicant_info"])
+        pca_needed = determine_pca(st.session_state["responses"])
 
-    # Add a progress bar
-    progress = st.session_state["current_question_index"] / len(randomized_questions)
+        justification = generate_justification(score, eligibility, middle_count, classifications, category_scores, st.session_state["applicant_info"])
+
+        st.success("You have completed the questionnaire!")
+        st.write(f"Eligibility: {eligibility}")
+        st.write(f"PCA Needed: {'Yes' if pca_needed else 'No'}")
+        st.write("Responses:", st.session_state["responses"])
+        st.write("\n\nReport:\n")
+        st.write(justification)
+
+    progress = (st.session_state["current_question_index"] + 1) / len(randomized_questions)
     st.progress(progress)
