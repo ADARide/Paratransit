@@ -744,14 +744,37 @@ def display_question():
     next_button = tk.Button(frame, text="Next", command=next_question)
     next_button.pack(pady=20)
 
-root = tk.Tk()
-root.title("Paratransit Eligibility Questionnaire")
+import streamlit as st
 
-frame = tk.Frame(root, padx=20, pady=20)
-frame.pack()
+# Title of the application
+st.title("Paratransit Eligibility Questionnaire")
 
-current_question_index = 0
-var = tk.IntVar()
+# Display questions one by one
+current_question_index = st.session_state.get("current_question_index", 0)
+responses = st.session_state.get("responses", {})
 
-display_question()
-root.mainloop()
+# Function to display a question
+def display_question(index):
+    question_data = randomized_questions[index][1]
+    st.write(question_data["text"])
+
+    # Radio buttons for answer choices
+    selected_option = st.radio(
+        "Choose an option:",
+        options=list(question_data["options"].keys()),
+        format_func=lambda x: question_data["options"][x],
+        key=f"question_{index}",
+    )
+
+    # Button to go to the next question
+    if st.button("Next"):
+        responses[randomized_questions[index][0]] = selected_option
+        st.session_state["current_question_index"] = index + 1
+        st.session_state["responses"] = responses
+
+# Check if there are more questions to display
+if current_question_index < len(randomized_questions):
+    display_question(current_question_index)
+else:
+    st.write("Thank you for completing the questionnaire!")
+    st.write(responses)
