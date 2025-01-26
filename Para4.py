@@ -788,8 +788,8 @@ if st.session_state["demographics_completed"]:
         st.write(question_data["text"])
 
         # Persist selection for current question
-if question_key not in st.session_state["responses"]:
-    st.session_state["responses"][question_key] = None  # Initialize with None
+    if question_key not in st.session_state["responses"]:
+        st.session_state["responses"][question_key] = None  # Initialize with None
 
 selected_option = st.radio(
     "Select an option:",
