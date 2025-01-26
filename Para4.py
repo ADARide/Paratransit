@@ -24,31 +24,28 @@ def collect_applicant_info():
         except ValueError:
             messagebox.showerror("Error", "Please fill out all fields correctly.")
 
-    root = tk.Tk()
-    root.title("Applicant Demographics")
+def collect_applicant_info():
+    st.title("Applicant Demographics")
+    st.write("Please provide your information below:")
 
-    tk.Label(root, text="Please provide your information:").grid(row=0, column=0, columnspan=2, pady=10)
+    # Streamlit widgets for data collection
+    name = st.text_input("Full Name:")
+    age = st.number_input("Age:", min_value=0, max_value=120, step=1)
+    gender = st.selectbox("Gender:", ["Male", "Female", "Other"])
+    mobility_device = st.radio("Do you use a mobility device?", ["Yes", "No"])
 
-    tk.Label(root, text="Full Name:").grid(row=1, column=0, sticky="e")
-    name_entry = tk.Entry(root)
-    name_entry.grid(row=1, column=1)
-
-    tk.Label(root, text="Age:").grid(row=2, column=0, sticky="e")
-    age_entry = tk.Entry(root)
-    age_entry.grid(row=2, column=1)
-
-    tk.Label(root, text="Gender:").grid(row=3, column=0, sticky="e")
-    gender_var = tk.StringVar(value="Other")
-    gender_menu = tk.OptionMenu(root, gender_var, "Male", "Female", "Other")
-    gender_menu.grid(row=3, column=1)
-
-    tk.Label(root, text="Do you use a mobility device?").grid(row=4, column=0, sticky="e")
-    mobility_var = tk.StringVar(value="No")
-    mobility_menu = tk.OptionMenu(root, mobility_var, "Yes", "No")
-    mobility_menu.grid(row=4, column=1)
-
-    tk.Button(root, text="Submit", command=submit_info).grid(row=5, column=0, columnspan=2, pady=10)
-    root.mainloop()
+    if st.button("Submit"):
+        # Validation
+        if not name or not age or not gender or not mobility_device:
+            st.error("Please fill out all fields correctly.")
+        else:
+            # Save information
+            applicant_info["Name"] = name.strip()
+            applicant_info["Age"] = int(age)
+            applicant_info["Gender"] = gender
+            applicant_info["Mobility Device"] = mobility_device
+            st.success("Information submitted successfully!")
+            return applicant_info
 
 # Call demographic collection
 collect_applicant_info()
