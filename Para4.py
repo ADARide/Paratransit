@@ -630,75 +630,37 @@ def generate_justification(score, eligibility, middle_count, classifications, ca
 
     return justification
 
-# Collect demographics
+# Updated button-handling logic
 if "current_question_index" not in st.session_state:
     st.session_state["current_question_index"] = 0
 if "responses" not in st.session_state:
     st.session_state["responses"] = {}
-if "demographics_completed" not in st.session_state:
-    st.session_state["demographics_completed"] = False
 
-if not st.session_state["demographics_completed"]:
-    st.title("Applicant Demographics")
+current_index = st.session_state["current_question_index"]
 
-    st.session_state["applicant_info"] = {
-        "Name": st.text_input("Full Name:"),
-        "Age": st.number_input("Age:", min_value=0, step=1),
-        "Gender": st.selectbox("Gender:", ["Male", "Female", "Other"]),
-        "Mobility Device": st.selectbox("Do you use a mobility device?", ["Yes", "No"])
-    }
+if current_index < len(randomized_questions):
+    question_key, question_data = randomized_questions[current_index]
 
-    if st.button("Submit Demographics"):
-        if not st.session_state["applicant_info"]["Name"] or not st.session_state["applicant_info"]["Age"]:
-            st.warning("Please fill out all fields correctly.")
+    st.subheader(f"Question {current_index + 1}/{len(randomized_questions)}")
+    st.write(question_data["text"])
+
+    selected_option = st.radio(
+        "Select an option:",
+        options=list(question_data["options"].values()),
+        index=list(question_data["options"].values()).index(
+            question_data["options"].get(st.session_state["responses"].get(question_key, None))
+        ) if st.session_state["responses"].get(question_key, None) is not None else -1,
+        key=f"q_{current_index}"
+    )
+
+    if st.button("Submit Answer"):
+        if selected_option == -1:
+            st.warning("Please select an option!")
         else:
-            st.session_state["demographics_completed"] = True
-            st.success("Demographics submitted!")
+            st.session_state["responses"][question_key] = list(question_data["options"].keys())[
+                list(question_data["options"].values()).index(selected_option)]
+            st.session_state["current_question_index"] += 1
+            st.experimental_rerun()
 
-# Display questions
 else:
-    current_index = st.session_state["current_question_index"]
-
-    if current_index < len(randomized_questions):
-        question_key, question_data = randomized_questions[current_index]
-
-        st.subheader(f"Question {current_index + 1}/{len(randomized_questions)}")
-        st.write(question_data["text"])
-
-        if question_key not in st.session_state["responses"]:
-            st.session_state["responses"][question_key] = None
-
-        selected_option = st.radio(
-            "Select an option:",
-            options=list(question_data["options"].values()),
-            index=list(question_data["options"].values()).index(
-                question_data["options"].get(st.session_state["responses"].get(question_key, None))
-            ) if st.session_state["responses"].get(question_key, None) is not None else 0,
-            key=f"q_{current_index}"
-        )
-
-        if st.button("Submit Answer", key=f"submit_{current_index}"):
-            if selected_option is None:
-                st.warning("Please select an option!")
-            else:
-                st.session_state["responses"][question_key] = list(question_data["options"].keys())[
-                    list(question_data["options"].values()).index(selected_option)]
-                st.session_state["current_question_index"] += 1
-                st.experimental_rerun()
-    else:
-        score, middle_count = calculate_score(st.session_state["responses"])
-        classifications, category_scores = classify_impairments_and_scores(st.session_state["responses"])
-        eligibility = determine_eligibility(score, middle_count, len(questions), st.session_state["applicant_info"])
-        pca_needed = determine_pca(st.session_state["responses"])
-
-        justification = generate_justification(score, eligibility, middle_count, classifications, category_scores, st.session_state["applicant_info"])
-
-        st.success("You have completed the questionnaire!")
-        st.write(f"Eligibility: {eligibility}")
-        st.write(f"PCA Needed: {'Yes' if pca_needed else 'No'}")
-        st.write("Responses:", st.session_state["responses"])
-        st.write("\n\nReport:\n")
-        st.write(justification)
-
-    progress = (st.session_state["current_question_index"] + 1) / len(randomized_questions)
-    st.progress(progress)
+    st.success("You have completed the questionnaire!")
