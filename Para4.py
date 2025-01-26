@@ -644,12 +644,37 @@ if current_index < len(randomized_questions):
     st.subheader(f"Question {current_index + 1}/{len(randomized_questions)}")
     st.write(question_data["text"])
 
+# Ensure a valid default index
+if question_key not in st.session_state["responses"]:
+    st.session_state["responses"][question_key] = None  # Initialize with None if not set
+
+# Set the index dynamically based on saved response
+default_index = (
+    list(question_data["options"].keys()).index(st.session_state["responses"][question_key])
+    if st.session_state["responses"][question_key] is not None
+    else 0  # Default to the first option
+)
+
+# Create the radio button with a valid index
 selected_option = st.radio(
     "Select an option:",
     options=list(question_data["options"].values()),
-    index=st.session_state["responses"].get(question_key, -1),  # Use saved response or default to -1
+    index=default_index,
     key=f"q_{current_index}"
 )
+
+# Button logic
+if st.button("Submit Answer", key=f"submit_{current_index}"):
+    if selected_option is None or selected_option == "":
+        st.warning("Please select an option!")
+    else:
+        # Save the selected option in session state
+        st.session_state["responses"][question_key] = list(question_data["options"].keys())[
+            list(question_data["options"].values()).index(selected_option)
+        ]
+        # Move to the next question
+        st.session_state["current_question_index"] += 1
+        st.experimental_rerun()
 
 if st.button("Submit Answer", key=f"submit_{current_index}"):
     if selected_option == -1:
