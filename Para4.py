@@ -1,7 +1,59 @@
 import streamlit as st
 import random
 
-# Define questions
+# Define life expectancy for demographic evaluation
+LIFE_EXPECTANCY = {
+    "Male": 73,
+    "Female": 79,
+    "Other": 76  # Default life expectancy for non-binary/unspecified gender
+}
+
+# Collect applicant demographics
+applicant_info = {}
+
+def collect_applicant_info():
+    def submit_info():
+        try:
+            applicant_info["Name"] = name_entry.get().strip()
+            applicant_info["Age"] = int(age_entry.get().strip())
+            applicant_info["Gender"] = gender_var.get()
+            applicant_info["Mobility Device"] = mobility_var.get()
+            if not applicant_info["Name"] or not applicant_info["Gender"] or not applicant_info["Mobility Device"]:
+                raise ValueError
+            root.destroy()
+        except ValueError:
+            messagebox.showerror("Error", "Please fill out all fields correctly.")
+
+    root = tk.Tk()
+    root.title("Applicant Demographics")
+
+    tk.Label(root, text="Please provide your information:").grid(row=0, column=0, columnspan=2, pady=10)
+
+    tk.Label(root, text="Full Name:").grid(row=1, column=0, sticky="e")
+    name_entry = tk.Entry(root)
+    name_entry.grid(row=1, column=1)
+
+    tk.Label(root, text="Age:").grid(row=2, column=0, sticky="e")
+    age_entry = tk.Entry(root)
+    age_entry.grid(row=2, column=1)
+
+    tk.Label(root, text="Gender:").grid(row=3, column=0, sticky="e")
+    gender_var = tk.StringVar(value="Other")
+    gender_menu = tk.OptionMenu(root, gender_var, "Male", "Female", "Other")
+    gender_menu.grid(row=3, column=1)
+
+    tk.Label(root, text="Do you use a mobility device?").grid(row=4, column=0, sticky="e")
+    mobility_var = tk.StringVar(value="No")
+    mobility_menu = tk.OptionMenu(root, mobility_var, "Yes", "No")
+    mobility_menu.grid(row=4, column=1)
+
+    tk.Button(root, text="Submit", command=submit_info).grid(row=5, column=0, columnspan=2, pady=10)
+    root.mainloop()
+
+# Call demographic collection
+collect_applicant_info()
+
+# Define the questions
 questions = {
     "Q1": {
         "text": "How often do you use public transit?",
@@ -503,17 +555,14 @@ questions = {
             4: "Always"
         }
     }
-}
-
+}  
 # Shuffle the questions for randomness
 randomized_questions = list(questions.items())
 random.shuffle(randomized_questions)
 
-# Initialize responses and current index
 responses = {}
 current_question_index = 0
 
-# Calculate score and classify impairments
 def calculate_score(responses):
     score = 0
     middle_count = 0
@@ -562,15 +611,18 @@ def determine_eligibility(score, middle_count, total_questions, applicant_info):
     gender = applicant_info["Gender"]
     mobility_device = applicant_info["Mobility Device"]
 
-    if age > 76:
+    if age > LIFE_EXPECTANCY.get(gender, 76):
         return "Unconditional Eligibility"
-    if score >= 120:
+
+    if score >= 120:  # Threshold for high scores
         return "Unconditional Eligibility"
+
     if mobility_device == "Yes":
         return "Conditional Eligibility"
+
     if middle_count >= total_questions * 0.75:
         return "Ineligible"
-    elif 80 <= score < 120:
+    elif 80 <= score < 120:  # Adjusted threshold for Conditional Eligibility
         return "Conditional Eligibility"
     else:
         return "Ineligible"
@@ -627,111 +679,82 @@ def generate_justification(score, eligibility, middle_count, classifications, ca
     justification += f"- Total Score: {score}\n"
     justification += f"- Neutral Responses: {middle_count} out of {len(questions)} questions\n"
     justification += f"- Challenges Identified in: {', '.join(classifications) if classifications else 'None'}\n"
+    justification += (
+        f"- Age vs. Life Expectancy: {applicant_info['Age']} years old, expected lifespan for {applicant_info['Gender']} is {LIFE_EXPECTANCY.get(applicant_info['Gender'], 76)} years.\n"
+    )
 
     return justification
 
-# Updated button-handling logic
-if "current_question_index" not in st.session_state:
-    st.session_state["current_question_index"] = 0
-if "responses" not in st.session_state:
-    st.session_state["responses"] = {}
+def calculate_and_display_results():
+    score, middle_count = calculate_score(responses)
+    classifications, category_scores = classify_impairments_and_scores(responses)
+    eligibility = determine_eligibility(score, middle_count, len(questions), applicant_info)
+    pca_needed = determine_pca(responses)
 
-current_index = st.session_state["current_question_index"]
+    justification = generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info)
 
-if current_index < len(randomized_questions):
-    question_key, question_data = randomized_questions[current_index]
+    for widget in frame.winfo_children():
+        widget.destroy()
 
-    st.subheader(f"Question {current_index + 1}/{len(randomized_questions)}")
-    st.write(question_data["text"])
+    result_label = tk.Label(
+        frame,
+        text=f"Overall Score: {score}\nEligibility: {eligibility}\nPCA Required: {pca_needed}",
+        wraplength=400,
+        justify="left",
+    )
+    result_label.pack(pady=10)
 
-# Ensure a valid default index
-if question_key not in st.session_state["responses"]:
-    st.session_state["responses"][question_key] = None  # Initialize with None if not set
+    breakdown_label = tk.Label(frame, text=justification, wraplength=400, justify="left")
+    breakdown_label.pack(pady=10)
 
-# Set the index dynamically based on saved response
-default_index = (
-    list(question_data["options"].keys()).index(st.session_state["responses"][question_key])
-    if st.session_state["responses"][question_key] is not None
-    else 0  # Default to the first option
-)
+    close_button = tk.Button(frame, text="Close", command=root.destroy)
+    close_button.pack(pady=20)
 
-# Display the question
-st.subheader(f"Question {current_index + 1}/{len(randomized_questions)}")
-st.write(question_data["text"])
+def next_question():
+    global current_question_index, responses
 
-# Ensure the response is stored in session state
-if question_key not in st.session_state["responses"]:
-    st.session_state["responses"][question_key] = None  # Initialize with None
+    selected_option = var.get()
+    if selected_option == -1:
+        messagebox.showwarning("Input Required", "Please select an option before proceeding.")
+        return
 
-# Dynamically set the index for the radio button
-default_index = (
-    list(question_data["options"].keys()).index(st.session_state["responses"][question_key])
-    if st.session_state["responses"][question_key] is not None
-    else -1  # No option selected
-)
+    question_key = randomized_questions[current_question_index][0]
+    responses[question_key] = selected_option
 
-# Ensure the response is stored in session state
-if question_key not in st.session_state["responses"]:
-    st.session_state["responses"][question_key] = None  # Initialize with None if not set
+    current_question_index += 1
 
-# Dynamically set the index for the radio button
-default_index = (
-    list(question_data["options"].keys()).index(st.session_state["responses"][question_key])
-    if st.session_state["responses"][question_key] is not None
-    else -1  # No option selected
-)
-
-# Create the radio button without advancing questions automatically
-selected_option = st.radio(
-    "Select an option:",
-    options=list(question_data["options"].values()),
-    index=default_index if default_index != -1 else 0,
-    key=f"q_{current_index}"
-)
-
-# Button to submit the selected option
-if st.button("Submit Answer", key=f"submit_{current_index}"):
-    if selected_option == "":
-        st.warning("Please select an option!")
+    if current_question_index < len(randomized_questions):
+        display_question()
     else:
-        # Save the selection
-        st.session_state["responses"][question_key] = list(question_data["options"].keys())[
-            list(question_data["options"].values()).index(selected_option)
-        ]
-        # Move to the next question
-        st.session_state["current_question_index"] += 1
-        st.experimental_rerun()
+        calculate_and_display_results()
 
-# Ensure the response is stored in session state
-if question_key not in st.session_state["responses"]:
-    st.session_state["responses"][question_key] = None  # Initialize with None if not set
+def display_question():
+    global current_question_index
 
-# Dynamically set the index for the radio button
-default_index = (
-    list(question_data["options"].keys()).index(st.session_state["responses"][question_key])
-    if st.session_state["responses"][question_key] is not None
-    else -1  # No option selected
-)
+    question_data = randomized_questions[current_question_index][1]
 
-# Create the radio button without advancing questions automatically
-selected_option = st.radio(
-    "Select an option:",
-    options=list(question_data["options"].values()),
-    index=default_index if default_index != -1 else 0,
-    key=f"radio_{current_index}"  # Unique key for the radio button
-)
+    for widget in frame.winfo_children():
+        widget.destroy()
 
-# Submit button to move to the next question
-if st.button("Submit Answer", key=f"submit_{current_index}"):  # Ensure unique key
-    if selected_option == "":
-        st.warning("Please select an option!")
-    else:
-        # Save the selected option to session state
-        st.session_state["responses"][question_key] = list(question_data["options"].keys())[
-            list(question_data["options"].values()).index(selected_option)
-        ]
-        # Increment the question index
-        st.session_state["current_question_index"] += 1
-        st.experimental_rerun()
-else:
-    st.success("You have completed the questionnaire!")
+    question_label = tk.Label(frame, text=question_data["text"], wraplength=400, justify="left")
+    question_label.pack(pady=10)
+
+    global var
+    var = tk.IntVar(value=-1)
+    for value, option in question_data["options"].items():
+        tk.Radiobutton(frame, text=option, variable=var, value=value).pack(anchor="w")
+
+    next_button = tk.Button(frame, text="Next", command=next_question)
+    next_button.pack(pady=20)
+
+root = tk.Tk()
+root.title("Paratransit Eligibility Questionnaire")
+
+frame = tk.Frame(root, padx=20, pady=20)
+frame.pack()
+
+current_question_index = 0
+var = tk.IntVar()
+
+display_question()
+root.mainloop()
