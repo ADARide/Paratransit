@@ -24,31 +24,22 @@ def collect_applicant_info():
         except ValueError:
             messagebox.showerror("Error", "Please fill out all fields correctly.")
 
-    root = tk.Tk()
-    root.title("Applicant Demographics")
+import streamlit as st
 
-    tk.Label(root, text="Please provide your information:").grid(row=0, column=0, columnspan=2, pady=10)
+st.title("Applicant Demographics")
 
-    tk.Label(root, text="Full Name:").grid(row=1, column=0, sticky="e")
-    name_entry = tk.Entry(root)
-    name_entry.grid(row=1, column=1)
+# Collect applicant information
+applicant_info = {}
+applicant_info["Name"] = st.text_input("Full Name:")
+applicant_info["Age"] = st.number_input("Age:", min_value=0, step=1)
+applicant_info["Gender"] = st.selectbox("Gender:", options=["Male", "Female", "Other"])
+applicant_info["Mobility Device"] = st.selectbox("Do you use a mobility device?", options=["Yes", "No"])
 
-    tk.Label(root, text="Age:").grid(row=2, column=0, sticky="e")
-    age_entry = tk.Entry(root)
-    age_entry.grid(row=2, column=1)
-
-    tk.Label(root, text="Gender:").grid(row=3, column=0, sticky="e")
-    gender_var = tk.StringVar(value="Other")
-    gender_menu = tk.OptionMenu(root, gender_var, "Male", "Female", "Other")
-    gender_menu.grid(row=3, column=1)
-
-    tk.Label(root, text="Do you use a mobility device?").grid(row=4, column=0, sticky="e")
-    mobility_var = tk.StringVar(value="No")
-    mobility_menu = tk.OptionMenu(root, mobility_var, "Yes", "No")
-    mobility_menu.grid(row=4, column=1)
-
-    tk.Button(root, text="Submit", command=submit_info).grid(row=5, column=0, columnspan=2, pady=10)
-    root.mainloop()
+if st.button("Submit Information"):
+    if not applicant_info["Name"] or not applicant_info["Age"] or not applicant_info["Gender"] or not applicant_info["Mobility Device"]:
+        st.warning("Please fill out all fields correctly.")
+    else:
+        st.success("Information collected successfully!")
 
 # Call demographic collection
 collect_applicant_info()
