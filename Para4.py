@@ -674,13 +674,14 @@ else:
             key=f"q_{current_index}"
         )
 
-        if st.button("Submit Answer"):
+        if st.button("Submit Answer", key=f"submit_{current_index}"):
             if selected_option is None:
                 st.warning("Please select an option!")
             else:
                 st.session_state["responses"][question_key] = list(question_data["options"].keys())[
                     list(question_data["options"].values()).index(selected_option)]
                 st.session_state["current_question_index"] += 1
+                st.experimental_rerun()
     else:
         score, middle_count = calculate_score(st.session_state["responses"])
         classifications, category_scores = classify_impairments_and_scores(st.session_state["responses"])
