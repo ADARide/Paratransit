@@ -26,20 +26,25 @@ def collect_applicant_info():
 
 import streamlit as st
 
-st.title("Applicant Demographics")
+if "demographics_completed" not in st.session_state:
+    st.session_state["demographics_completed"] = False
+if "applicant_info" not in st.session_state:
+    st.session_state["applicant_info"] = {}
 
-# Collect applicant information
-applicant_info = {}
-applicant_info["Name"] = st.text_input("Full Name:")
-applicant_info["Age"] = st.number_input("Age:", min_value=0, step=1)
-applicant_info["Gender"] = st.selectbox("Gender:", options=["Male", "Female", "Other"])
-applicant_info["Mobility Device"] = st.selectbox("Do you use a mobility device?", options=["Yes", "No"])
+if not st.session_state["demographics_completed"]:
+    st.title("Applicant Demographics")
 
-if st.button("Submit Information"):
-    if not applicant_info["Name"] or not applicant_info["Age"] or not applicant_info["Gender"] or not applicant_info["Mobility Device"]:
-        st.warning("Please fill out all fields correctly.")
-    else:
-        st.success("Information collected successfully!")
+    st.session_state["applicant_info"]["Name"] = st.text_input("Full Name:")
+    st.session_state["applicant_info"]["Age"] = st.number_input("Age:", min_value=0, step=1)
+    st.session_state["applicant_info"]["Gender"] = st.selectbox("Gender:", options=["Male", "Female", "Other"])
+    st.session_state["applicant_info"]["Mobility Device"] = st.selectbox("Do you use a mobility device?", options=["Yes", "No"])
+
+    if st.button("Submit Information"):
+        if not st.session_state["applicant_info"]["Name"] or not st.session_state["applicant_info"]["Age"] or not st.session_state["applicant_info"]["Gender"] or not st.session_state["applicant_info"]["Mobility Device"]:
+            st.warning("Please fill out all fields correctly.")
+        else:
+            st.session_state["demographics_completed"] = True
+            st.success("Demographics submitted!")
 
 # Call demographic collection
 collect_applicant_info()
@@ -765,8 +770,34 @@ def display_question():
         st.session_state["current_question_index"] += 1
 
 # Main questionnaire loop
-if st.session_state["current_question_index"] < len(randomized_questions):
-    display_question()
-else:
-    st.success("You have completed the questionnaire!")
-    st.write("Responses:", st.session_state["responses"])
+if "current_question_index" not in st.session_state:
+    st.session_state["current_question_index"] = 0
+if "responses" not in st.session_state:
+    st.session_state["responses"] = {}
+
+if st.session_state["demographics_completed"]:
+    current_index = st.session_state["current_question_index"]
+
+    if current_index < len(randomized_questions):
+        question_key, question_data = randomized_questions[current_index]
+        st.subheader(f"Question {current_index + 1}/{len(randomized_questions)}")
+        st.write(question_data["text"])
+
+        # Persist selection for current question
+        selected_option = st.radio(
+            "Select an option:",
+            options=list(question_data["options"].values()),
+            index=st.session_state["responses"].get(question_key, -1),
+            key=f"q_{current_index}"
+        )
+
+        if st.button("Submit Answer"):
+            st.session_state["responses"][question_key] = list(question_data["options"].keys())[list(question_data["options"].values()).index(selected_option)]
+            st.session_state["current_question_index"] += 1
+    else:
+        st.success("You have completed the questionnaire!")
+        st.write("Responses:", st.session_state["responses"])
+
+    # Add progress bar
+    progress = (st.session_state["current_question_index"] + 1) / len(randomized_questions)
+    st.progress(progress)
