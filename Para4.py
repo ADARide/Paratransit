@@ -670,6 +670,17 @@ default_index = (
     else -1  # No option selected
 )
 
+# Ensure the response is stored in session state
+if question_key not in st.session_state["responses"]:
+    st.session_state["responses"][question_key] = None  # Initialize with None if not set
+
+# Dynamically set the index for the radio button
+default_index = (
+    list(question_data["options"].keys()).index(st.session_state["responses"][question_key])
+    if st.session_state["responses"][question_key] is not None
+    else -1  # No option selected
+)
+
 # Create the radio button without advancing questions automatically
 selected_option = st.radio(
     "Select an option:",
