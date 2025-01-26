@@ -788,8 +788,8 @@ if st.session_state["demographics_completed"]:
         st.write(question_data["text"])
 
         # Persist selection for current question
-       if question_key not in st.session_state["responses"]:
-    st.session_state["responses"][question_key] = None  # Initialize to None
+if question_key not in st.session_state["responses"]:
+    st.session_state["responses"][question_key] = None  # Initialize with None
 
 selected_option = st.radio(
     "Select an option:",
@@ -803,9 +803,6 @@ if st.button("Submit Answer"):
     else:
         st.session_state["responses"][question_key] = selected_option
         st.session_state["current_question_index"] += 1
-        if st.button("Submit Answer"):
-            st.session_state["responses"][question_key] = list(question_data["options"].keys())[list(question_data["options"].values()).index(selected_option)]
-            st.session_state["current_question_index"] += 1
     else:
         st.success("You have completed the questionnaire!")
         st.write("Responses:", st.session_state["responses"])
