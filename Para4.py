@@ -671,6 +671,9 @@ else:
         selected_option = st.radio(
             "Select an option:",
             options=list(question_data["options"].values()),
+            index=list(question_data["options"].values()).index(
+                question_data["options"].get(st.session_state["responses"].get(question_key, None))
+            ) if st.session_state["responses"].get(question_key, None) is not None else 0,
             key=f"q_{current_index}"
         )
 
