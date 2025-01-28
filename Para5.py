@@ -15,6 +15,24 @@ if "applicant_info" not in st.session_state:
 if "current_step" not in st.session_state:
     st.session_state["current_step"] = "demographics"  # Start with the demographics step
 
+# Example questions for the questionnaire
+questions = {
+    "Q1": {"text": "How often do you use public transit?", "options": {1: "Never", 2: "Rarely", 3: "Sometimes", 4: "Often", 5: "Always"}},
+    "Q2": {"text": "How confident are you navigating bus routes?", "options": {1: "Not at all", 2: "Slightly", 3: "Moderately", 4: "Very", 5: "Extremely"}},
+}
+
+# Shuffle the questions for randomness
+if "randomized_questions" not in st.session_state:
+    randomized_questions = list(questions.items())
+    random.shuffle(randomized_questions)
+    st.session_state["randomized_questions"] = randomized_questions
+
+if "responses" not in st.session_state:
+    st.session_state["responses"] = {}
+
+if "current_question_index" not in st.session_state:
+    st.session_state["current_question_index"] = 0
+
 # Function to collect applicant demographics
 def collect_applicant_info():
     if st.session_state["current_step"] == "demographics":
@@ -43,10 +61,32 @@ def collect_applicant_info():
             else:
                 st.error("Please fill out all fields correctly.")
     elif st.session_state["current_step"] == "questionnaire":
-        # Display the questionnaire (this part will be added as needed)
-        st.write("Now, let's start the questionnaire.")
+        # Display the questionnaire after demographics are submitted
+        display_question(st.session_state["current_question_index"])
 
-# Call the function to display the demographics form
+# Function to display questions and collect responses
+def display_question(index):
+    if index < len(st.session_state["randomized_questions"]):
+        question_data = st.session_state["randomized_questions"][index][1]
+        st.write(f"Question {index + 1}: {question_data['text']}")
+
+        # Use st.radio to display options
+        selected_option = st.radio(
+            "Choose an option:",
+            options=list(question_data["options"].keys()),
+            format_func=lambda x: question_data["options"][x],
+            key=f"radio_question_{index}",
+        )
+
+        if selected_option:
+            # Save the selected option to responses
+            st.session_state["responses"][st.session_state["randomized_questions"][index][0]] = selected_option
+            # Increment the question index
+            st.session_state["current_question_index"] += 1
+            # Automatically go to the next question
+            st.experimental_rerun()
+
+# Main application logic
 collect_applicant_info()
 
 # Define the questions
