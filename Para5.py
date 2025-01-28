@@ -711,12 +711,18 @@ def display_question(index):
             st.session_state["responses"][randomized_questions[index][0]] = selected_option
             # Increment the question index
             st.session_state["current_question_index"] += 1
-            # Update the query parameters to reflect the next question
-            st.query_params = {"question_index": st.session_state["current_question_index"]}
-            # Trigger a rerun to show the next question
-            st.experimental_rerun()
+            # Update query parameters to reflect the next question
+            st.session_state["rerun_trigger"] = True
         else:
             st.error("Please select an option before proceeding.")
+
+
+# Handle reruns manually (avoid st.experimental_rerun)
+if "rerun_trigger" in st.session_state and st.session_state["rerun_trigger"]:
+    st.session_state["rerun_trigger"] = False  # Reset the trigger
+    st.experimental_set_query_params(
+        question_index=st.session_state["current_question_index"]
+    )
 
 
 # Check if there are questions remaining
