@@ -9,34 +9,18 @@ LIFE_EXPECTANCY = {
 }
 
 # Collect applicant demographics
-applicant_info = {}
-
-def collect_applicant_info():
-    def submit_info():
-        try:
-            applicant_info["Name"] = name_entry.get().strip()
-            applicant_info["Age"] = int(age_entry.get().strip())
-            applicant_info["Gender"] = gender_var.get()
-            applicant_info["Mobility Device"] = mobility_var.get()
-            if not applicant_info["Name"] or not applicant_info["Gender"] or not applicant_info["Mobility Device"]:
-                raise ValueError
-            root.destroy()
-        except ValueError:
-            messagebox.showerror("Error", "Please fill out all fields correctly.")
-
-# Track demographic submission
 if "applicant_info" not in st.session_state:
     st.session_state["applicant_info"] = {"submitted": False}
 
-if not st.session_state["applicant_info"].get("submitted", False):
+if not st.session_state["applicant_info"]["submitted"]:
     st.title("Demographics")
     st.write("Please provide your information below:")
 
     # Streamlit widgets for data collection
-    name = st.text_input("Full Name:")
-    age = st.number_input("Age:", min_value=0, max_value=120, step=1)
-    gender = st.selectbox("Gender:", ["Male", "Female", "Other"])
-    mobility_device = st.radio("Do you use a mobility device?", ["Yes", "No"])
+    name = st.text_input("Full Name:", key="name_input")
+    age = st.number_input("Age:", min_value=0, max_value=120, step=1, key="age_input")
+    gender = st.selectbox("Gender:", ["Male", "Female", "Other"], key="gender_input")
+    mobility_device = st.radio("Do you use a mobility device?", ["Yes", "No"], key="mobility_device_input")
 
     if st.button("Submit Demographics"):
         if name.strip() and age and gender and mobility_device:
@@ -46,57 +30,23 @@ if not st.session_state["applicant_info"].get("submitted", False):
                 "Age": int(age),
                 "Gender": gender,
                 "Mobility Device": mobility_device,
-                "submitted": True
+                "submitted": True,
             }
-            st.session_state["current_question_index"] = 0  # Ensure first question starts
-            st.experimental_rerun()  # Reload to move directly to the first question
+            # Initialize other session variables
+            st.session_state["current_question_index"] = 0
+            st.session_state["responses"] = {}
+            st.experimental_rerun()  # Reload app to move to the first question
         else:
             st.error("Please fill out all fields correctly.")
 else:
-    # Ensure we transition to the first question immediately
+    # If demographics have been submitted, proceed with the questionnaire
+    st.title("Questionnaire")
+
+    # Ensure other session variables are initialized
     if "current_question_index" not in st.session_state:
-        st.session_state["current_question_index"] = 0  # Initialize if not already set
-
+        st.session_state["current_question_index"] = 0
     if "responses" not in st.session_state:
-        st.session_state["responses"] = {}  # Initialize responses if not set
-
-    if st.session_state["current_question_index"] < len(randomized_questions):
-        display_question(st.session_state["current_question_index"])
-    else:
-        st.title("Thank You!")
-        st.write("You have completed the questionnaire.")
-        st.write("Your responses:")
-        st.json(st.session_state["responses"])
-
-# Question submission logic
-def display_question(index):
-    question_data = randomized_questions[index][1]
-    st.write(question_data["text"])
-
-    # Radio buttons for answer choices
-    selected_option = st.radio(
-        "Choose an option:",
-        options=list(question_data["options"].keys()),
-        format_func=lambda x: question_data["options"][x],
-        key=f"question_{index}",
-    )
-
-    # Button to submit the answer and move to the next question
-    if st.button("Submit Answer", key=f"submit_answer_{index}"):
-        if selected_option is not None:  # Check if an option is selected
-            # Save the response
-            if "responses" not in st.session_state:
-                st.session_state["responses"] = {}  # Initialize responses if not set
-            st.session_state["responses"][randomized_questions[index][0]] = selected_option
-
-            # Increment the question index
-            st.session_state["current_question_index"] += 1  # Move to the next question
-
-            # Rerender the application to display the next question
-            st.experimental_rerun()
-        else:
-            # Display an error message if no option is selected
-            st.error("Please select an option before proceeding.")
+        st.session_state["responses"] = {}
 
 # Define the questions
 questions = {
