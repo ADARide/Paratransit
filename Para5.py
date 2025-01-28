@@ -54,6 +54,12 @@ if not st.session_state["applicant_info"].get("submitted", False):
             st.error("Please fill out all fields correctly.")
 else:
     # Ensure we transition to the first question immediately
+    if "current_question_index" not in st.session_state:
+        st.session_state["current_question_index"] = 0  # Initialize if not already set
+
+    if "responses" not in st.session_state:
+        st.session_state["responses"] = {}  # Initialize responses if not set
+
     if st.session_state["current_question_index"] < len(randomized_questions):
         display_question(st.session_state["current_question_index"])
     else:
@@ -76,19 +82,21 @@ def display_question(index):
     )
 
     # Button to submit the answer and move to the next question
-if st.button("Submit Answer", key=f"submit_answer_{index}"):
-    if selected_option is not None:  # Check if an option is selected
-        # Save the response
-        st.session_state["responses"][randomized_questions[index][0]] = selected_option
+    if st.button("Submit Answer", key=f"submit_answer_{index}"):
+        if selected_option is not None:  # Check if an option is selected
+            # Save the response
+            if "responses" not in st.session_state:
+                st.session_state["responses"] = {}  # Initialize responses if not set
+            st.session_state["responses"][randomized_questions[index][0]] = selected_option
 
-        # Increment the question index
-        st.session_state["current_question_index"] += 1  # Move to the next question
+            # Increment the question index
+            st.session_state["current_question_index"] += 1  # Move to the next question
 
-        # Rerender the application to display the next question
-        st.experimental_rerun()
-    else:
-        # Display an error message if no option is selected
-        st.error("Please select an option before proceeding.")
+            # Rerender the application to display the next question
+            st.experimental_rerun()
+        else:
+            # Display an error message if no option is selected
+            st.error("Please select an option before proceeding.")
 
 # Define the questions
 questions = {
@@ -114,11 +122,19 @@ questions = {
     }
 }  
 # Shuffle the questions for randomness
-randomized_questions = list(questions.items())
-random.shuffle(randomized_questions)
+if "randomized_questions" not in st.session_state:
+    randomized_questions = list(questions.items())
+    random.shuffle(randomized_questions)
+    st.session_state["randomized_questions"] = randomized_questions
+else:
+    randomized_questions = st.session_state["randomized_questions"]
 
-responses = {}
-current_question_index = 0
+if "responses" not in st.session_state:
+    st.session_state["responses"] = {}
+
+if "current_question_index" not in st.session_state:
+    st.session_state["current_question_index"] = 0
+
 
 def calculate_score(responses):
     score = 0
@@ -128,6 +144,7 @@ def calculate_score(responses):
         if answer == 2:
             middle_count += 1
     return score, middle_count
+
 
 def classify_impairments_and_scores(responses):
     classifications = []
@@ -163,6 +180,7 @@ def classify_impairments_and_scores(responses):
 
     return classifications, category_scores
 
+
 def determine_eligibility(score, middle_count, total_questions, applicant_info):
     age = applicant_info["Age"]
     gender = applicant_info["Gender"]
@@ -184,9 +202,11 @@ def determine_eligibility(score, middle_count, total_questions, applicant_info):
     else:
         return "Ineligible"
 
+
 def determine_pca(responses):
     pca_questions = ["Q5", "Q18"]
     return any(responses.get(q, 0) > 2 for q in pca_questions)
+
 
 def generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info):
     justification = (
@@ -234,7 +254,7 @@ def generate_justification(score, eligibility, middle_count, classifications, ca
 
     justification += "\n\nDetailed Statistical Breakdown:\n"
     justification += f"- Total Score: {score}\n"
-    justification += f"- Neutral Responses: {middle_count} out of {len(questions)} questions\n"
+    justification += f"- Neutral Responses: {middle_count} out of {len(randomized_questions)} questions\n"
     justification += f"- Challenges Identified in: {', '.join(classifications) if classifications else 'None'}\n"
     justification += (
         f"- Age vs. Life Expectancy: {applicant_info['Age']} years old, expected lifespan for {applicant_info['Gender']} is {LIFE_EXPECTANCY.get(applicant_info['Gender'], 76)} years.\n"
@@ -242,78 +262,7 @@ def generate_justification(score, eligibility, middle_count, classifications, ca
 
     return justification
 
-def calculate_and_display_results():
-    score, middle_count = calculate_score(responses)
-    classifications, category_scores = classify_impairments_and_scores(responses)
-    eligibility = determine_eligibility(score, middle_count, len(questions), applicant_info)
-    pca_needed = determine_pca(responses)
 
-    justification = generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info)
-
-    for widget in frame.winfo_children():
-        widget.destroy()
-
-    result_label = tk.Label(
-        frame,
-        text=f"Overall Score: {score}\nEligibility: {eligibility}\nPCA Required: {pca_needed}",
-        wraplength=400,
-        justify="left",
-    )
-    result_label.pack(pady=10)
-
-    breakdown_label = tk.Label(frame, text=justification, wraplength=400, justify="left")
-    breakdown_label.pack(pady=10)
-
-    close_button = tk.Button(frame, text="Close", command=root.destroy)
-    close_button.pack(pady=20)
-
-def next_question():
-    global current_question_index, responses
-
-    selected_option = var.get()
-    if selected_option == -1:
-        messagebox.showwarning("Input Required", "Please select an option before proceeding.")
-        return
-
-    question_key = randomized_questions[current_question_index][0]
-    responses[question_key] = selected_option
-
-    current_question_index += 1
-
-    if current_question_index < len(randomized_questions):
-        display_question()
-    else:
-        calculate_and_display_results()
-
-def display_question():
-    global current_question_index
-
-    question_data = randomized_questions[current_question_index][1]
-
-    for widget in frame.winfo_children():
-        widget.destroy()
-
-    question_label = tk.Label(frame, text=question_data["text"], wraplength=400, justify="left")
-    question_label.pack(pady=10)
-
-    global var
-    var = tk.IntVar(value=-1)
-    for value, option in question_data["options"].items():
-        tk.Radiobutton(frame, text=option, variable=var, value=value).pack(anchor="w")
-
-    next_button = tk.Button(frame, text="Next", command=next_question)
-    next_button.pack(pady=20)
-
-import streamlit as st
-
-# Title of the application
-st.title("Paratransit Eligibility Questionnaire")
-
-# Display questions one by one
-current_question_index = st.session_state.get("current_question_index", 0)
-responses = st.session_state.get("responses", {})
-
-# Display questions one by one
 def display_question(index):
     question_data = randomized_questions[index][1]
     st.write(f"Question {index + 1}: {question_data['text']}")  # Display question number and text
@@ -323,29 +272,23 @@ def display_question(index):
         "Choose an option:",
         options=list(question_data["options"].keys()),
         format_func=lambda x: question_data["options"][x],
-        key=f"radio_question_{index}",  # Unique key for radio buttons
+        key=f"radio_question_{index}",
     )
 
     # Button to submit the answer
-    if st.button("Submit Answer", key=f"submit_answer_{index}"):  # Ensure button key is unique
-        if selected_option is not None:  # Check if an option is selected
-            if "responses" not in st.session_state:  # Initialize if not set
-                st.session_state["responses"] = {}
+    if st.button("Submit Answer", key=f"submit_answer_{index}"):
+        if selected_option is not None:
             st.session_state["responses"][randomized_questions[index][0]] = selected_option
-
-            # Increment the question index
             st.session_state["current_question_index"] += 1
-
-            # Rerun the app to load the next question
             st.experimental_rerun()
         else:
             st.error("Please select an option before proceeding.")
 
-# Check if there are more questions to display
-if st.session_state.get("current_question_index", 0) < len(randomized_questions):
+
+# Main application logic
+if st.session_state["current_question_index"] < len(randomized_questions):
     display_question(st.session_state["current_question_index"])
 else:
     st.title("Thank You!")
     st.write("You have completed the questionnaire.")
-    st.write("Here are your responses:")
     st.json(st.session_state["responses"])
