@@ -26,21 +26,25 @@ def collect_applicant_info():
 
 ## Track demographic submission
 if "applicant_info" not in st.session_state:
-    st.session_state["applicant_info"] = {}
+    st.session_state["applicant_info"] = {"submitted": False}
 
-if not st.session_state["applicant_info"].get("submitted", False):
+if not st.session_state["applicant_info"]["submitted"]:
     st.title("Demographics")
     st.write("Please provide your information below:")
 
     # Streamlit widgets for data collection
-    name = st.text_input("Full Name:")
-    age = st.number_input("Age:", min_value=0, max_value=120, step=1)
-    gender = st.selectbox("Gender:", ["Male", "Female", "Other"])
-    mobility_device = st.radio("Do you use a mobility device?", ["Yes", "No"])
+    name = st.text_input("Full Name:", value=st.session_state["applicant_info"].get("Name", ""))
+    age = st.number_input("Age:", min_value=0, max_value=120, step=1, value=st.session_state["applicant_info"].get("Age", 0))
+    gender = st.selectbox("Gender:", ["Male", "Female", "Other"], index=["Male", "Female", "Other"].index(st.session_state["applicant_info"].get("Gender", "Male")))
+    mobility_device = st.radio(
+        "Do you use a mobility device?", 
+        ["Yes", "No"], 
+        index=["Yes", "No"].index(st.session_state["applicant_info"].get("Mobility Device", "No"))
+    )
 
     if st.button("Submit Demographics"):
         # Validate input
-        if name and age and gender and mobility_device:
+        if name.strip() and age and gender and mobility_device:
             # Save demographic info to session state
             st.session_state["applicant_info"] = {
                 "Name": name.strip(),
@@ -50,15 +54,17 @@ if not st.session_state["applicant_info"].get("submitted", False):
                 "submitted": True
             }
             st.success("Demographic information submitted successfully!")
-            st.experimental_rerun()  # Reload app to show questions
+            st.experimental_rerun()  # Reload app to show the next section
         else:
-            st.error("Please fill out all fields correctly.")
+            st.error("Please fill out all fields correctly. All fields are required.")
 else:
-    st.write("Demographic information has been saved.")
-    st.write(f"Name: {st.session_state['applicant_info']['Name']}")
-    st.write(f"Age: {st.session_state['applicant_info']['Age']}")
-    st.write(f"Gender: {st.session_state['applicant_info']['Gender']}")
-    st.write(f"Mobility Device: {st.session_state['applicant_info']['Mobility Device']}")
+    st.title("Demographics Saved")
+    st.write("Your demographic information has been saved:")
+    st.write(f"**Name:** {st.session_state['applicant_info']['Name']}")
+    st.write(f"**Age:** {st.session_state['applicant_info']['Age']}")
+    st.write(f"**Gender:** {st.session_state['applicant_info']['Gender']}")
+    st.write(f"**Mobility Device:** {st.session_state['applicant_info']['Mobility Device']}")
+    st.success("You can now proceed to the next section.")
 
 # Question submission logic
 if st.button("Submit"):
