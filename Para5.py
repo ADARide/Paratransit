@@ -73,7 +73,16 @@ def display_question(index):
 if st.session_state["current_step"] == "demographics":
     collect_applicant_info()
 elif st.session_state["current_step"] == "questionnaire":
-    display_question(st.session_state["current_question_index"])
+    if st.session_state["current_question_index"] < len(st.session_state["randomized_questions"]):
+        display_question(st.session_state["current_question_index"])
+    else:
+        # If all questions are answered, transition to completion
+        st.session_state["current_step"] = "complete"
+
+if st.session_state["current_step"] == "complete":
+    st.title("Thank You!")
+    st.write("You have completed the questionnaire.")
+    st.json(st.session_state["responses"])
 
 # Define the questions
 questions = {
