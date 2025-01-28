@@ -24,17 +24,13 @@ def collect_applicant_info():
         except ValueError:
             messagebox.showerror("Error", "Please fill out all fields correctly.")
 
-# Track demographic submission
+## Track demographic submission
 if "applicant_info" not in st.session_state:
     st.session_state["applicant_info"] = {}
 
 if not st.session_state["applicant_info"].get("submitted", False):
-    demographic_info = collect_applicant_info()
-    if demographic_info:
-        st.session_state["applicant_info"] = demographic_info
-        st.session_state["applicant_info"]["submitted"] = True
-else:
-    st.write("Demographic information has been saved.")
+    st.title("Demographics")
+    st.write("Please provide your information below:")
 
     # Streamlit widgets for data collection
     name = st.text_input("Full Name:")
@@ -42,17 +38,37 @@ else:
     gender = st.selectbox("Gender:", ["Male", "Female", "Other"])
     mobility_device = st.radio("Do you use a mobility device?", ["Yes", "No"])
 
+    if st.button("Submit Demographics"):
+        # Validate input
+        if name and age and gender and mobility_device:
+            # Save demographic info to session state
+            st.session_state["applicant_info"] = {
+                "Name": name.strip(),
+                "Age": int(age),
+                "Gender": gender,
+                "Mobility Device": mobility_device,
+                "submitted": True
+            }
+            st.success("Demographic information submitted successfully!")
+            st.experimental_rerun()  # Reload app to show questions
+        else:
+            st.error("Please fill out all fields correctly.")
+else:
+    st.write("Demographic information has been saved.")
+    st.write(f"Name: {st.session_state['applicant_info']['Name']}")
+    st.write(f"Age: {st.session_state['applicant_info']['Age']}")
+    st.write(f"Gender: {st.session_state['applicant_info']['Gender']}")
+    st.write(f"Mobility Device: {st.session_state['applicant_info']['Mobility Device']}")
+
+# Question submission logic
 if st.button("Submit"):
     if selected_option is not None:
         responses[randomized_questions[index][0]] = selected_option
         st.session_state["current_question_index"] += 1
         st.session_state["responses"] = responses
-        st.experimental_rerun()  # Force rerendering
+        st.experimental_rerun()  # Reload app to show the next question
     else:
         st.error("Please select an option.")
-
-# Call demographic collection
-collect_applicant_info()
 
 # Define the questions
 questions = {
