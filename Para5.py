@@ -18,7 +18,7 @@ applicant_info["Age"] = st.sidebar.number_input("Age", min_value=0, step=1)
 applicant_info["Gender"] = st.sidebar.selectbox("Gender", ["Male", "Female", "Other"])
 applicant_info["Mobility Device"] = st.sidebar.selectbox("Do you use a mobility device?", ["Yes", "No"])
 
-# Define the questions
+## Define the questions
 questions = {
     "Q1": {
         "text": "How often do you use public transit?",
@@ -521,6 +521,7 @@ questions = {
         }
     }
 }
+
 # Shuffle the questions for randomness
 randomized_questions = list(questions.items())
 random.shuffle(randomized_questions)
@@ -551,16 +552,26 @@ def classify_impairments_and_scores(responses):
         "Hearing Impairment": 0,
     }
 
-    vision_questions = ["Q1"]  # Replace with actual relevant questions
-    auditory_questions = ["Q50"]  # Replace with actual relevant questions
+    vision_questions = ["Q3", "Q15", "Q24"]
+    cognitive_questions = ["Q4", "Q12", "Q26"]
+    physical_questions = ["Q2", "Q7", "Q29"]
+    auditory_questions = ["Q16", "Q50"]
 
     for q in vision_questions:
         category_scores["Vision Impairment"] += responses.get(q, 0)
+    for q in cognitive_questions:
+        category_scores["Cognitive Impairment"] += responses.get(q, 0)
+    for q in physical_questions:
+        category_scores["Physical Impairment"] += responses.get(q, 0)
     for q in auditory_questions:
         category_scores["Hearing Impairment"] += responses.get(q, 0)
 
     if category_scores["Vision Impairment"] > 2:
         classifications.append("Vision Impairment")
+    if category_scores["Cognitive Impairment"] > 2:
+        classifications.append("Cognitive Impairment")
+    if category_scores["Physical Impairment"] > 2:
+        classifications.append("Physical Impairment")
     if category_scores["Hearing Impairment"] > 2:
         classifications.append("Hearing Impairment")
 
