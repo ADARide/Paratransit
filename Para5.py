@@ -35,14 +35,13 @@ def collect_applicant_info():
                     "Mobility Device": mobility_device,
                     "submitted": True,
                 }
-                st.success("Demographics submitted successfully!")
+                # Transition directly to the questionnaire by rerunning
+                st.experimental_rerun()
             else:
                 st.error("Please fill out all fields correctly.")
     else:
-        st.success("Demographics have already been submitted.")
-        st.write("Here is the information you provided:")
-        st.json(st.session_state["applicant_info"])
-
+        # Skip demographics and proceed to questionnaire
+        st.experimental_rerun()
 
 # Call the function to display the demographics form
 collect_applicant_info()
