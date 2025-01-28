@@ -701,17 +701,22 @@ def display_question(index):
         "Choose an option:",
         options=list(question_data["options"].keys()),
         format_func=lambda x: question_data["options"][x],
+        index=0 if f"selected_option_{index}" not in st.session_state else
+        list(question_data["options"].keys()).index(st.session_state[f"selected_option_{index}"]),
         key=f"radio_question_{index}",
     )
 
+    # Update the selected option in session state
+    st.session_state[f"selected_option_{index}"] = selected_option
+
     # Automatically proceed when an option is selected
-    if selected_option:  # Ensure a valid selection
+    if f"processed_{index}" not in st.session_state:
         # Save the selected option to responses
         st.session_state["responses"][randomized_questions[index][0]] = selected_option
+        # Mark the question as processed to avoid loops
+        st.session_state[f"processed_{index}"] = True
         # Increment the question index
         st.session_state["current_question_index"] += 1
-        # Trigger a rerun to show the next question
-        st.experimental_rerun()
 
 
 # Initialize session state for the app
