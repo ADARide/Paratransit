@@ -712,9 +712,7 @@ def display_question(index):
             # Increment the question index
             st.session_state["current_question_index"] += 1
             # Update the query parameters to reflect the next question
-            st.experimental_set_query_params(
-                question_index=st.session_state["current_question_index"]
-            )
+            st.query_params = {"question_index": st.session_state["current_question_index"]}
             # Trigger a rerun to show the next question
             st.experimental_rerun()
         else:
