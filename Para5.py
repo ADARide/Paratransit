@@ -534,15 +534,14 @@ for question_key, question_data in randomized_questions:
     st.subheader(question_data["text"])
     responses[question_key] = st.radio(
         "Select an option:",
-        options=list(question_data["options"].keys()),
-        format_func=lambda x: question_data["options"][x],
-        key=question_key,
-        index=-1  # Ensures radio buttons are empty by default
+        options=[None] + list(question_data["options"].keys()),
+        format_func=lambda x: "" if x is None else question_data["options"][x],
+        key=question_key
     )
 
 # Functions for eligibility calculations
 def calculate_score(responses):
-    score = sum(responses.values())
+    score = sum(value for value in responses.values() if value is not None)
     middle_count = list(responses.values()).count(2)
     return score, middle_count
 
@@ -561,13 +560,13 @@ def classify_impairments_and_scores(responses):
     auditory_questions = ["Q16", "Q50"]
 
     for q in vision_questions:
-        category_scores["Vision Impairment"] += responses.get(q, 0)
+        category_scores["Vision Impairment"] += responses.get(q, 0) or 0
     for q in cognitive_questions:
-        category_scores["Cognitive Impairment"] += responses.get(q, 0)
+        category_scores["Cognitive Impairment"] += responses.get(q, 0) or 0
     for q in physical_questions:
-        category_scores["Physical Impairment"] += responses.get(q, 0)
+        category_scores["Physical Impairment"] += responses.get(q, 0) or 0
     for q in auditory_questions:
-        category_scores["Hearing Impairment"] += responses.get(q, 0)
+        category_scores["Hearing Impairment"] += responses.get(q, 0) or 0
 
     if category_scores["Vision Impairment"] > 2:
         classifications.append("Vision Impairment")
@@ -657,9 +656,12 @@ def generate_justification(score, eligibility, middle_count, classifications, ca
 
 # Calculate and display results
 if st.button("Submit Questionnaire"):
-    score, middle_count = calculate_score(responses)
-    classifications, category_scores = classify_impairments_and_scores(responses)
-    eligibility = determine_eligibility(score, middle_count, len(questions), applicant_info)
+    if None in responses.values():
+        st.error("Please answer all questions before submitting.")
+    else:
+        score, middle_count = calculate_score(responses)
+        classifications, category_scores = classify_impairments_and_scores(responses)
+        eligibility = determine_eligibility(score, middle_count, len(questions), applicant_info)
 
-    st.success(f"Eligibility Determination: {eligibility}")
-    st.write(generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info))
+        st.success(f"Eligibility Determination: {eligibility}")
+        st.write(generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info))
