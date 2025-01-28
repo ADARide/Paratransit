@@ -763,39 +763,30 @@ def display_question(index):
     st.write(question_data["text"])
 
     # Radio buttons for answer choices
-selected_option = st.radio(
-    "Choose an option:",
-    options=list(question_data["options"].keys()),
-    format_func=lambda x: question_data["options"][x],
-    key=f"question_{index}",
-)
+    selected_option = st.radio(
+        "Choose an option:",
+        options=list(question_data["options"].keys()),
+        format_func=lambda x: question_data["options"][x],
+        key=f"question_{index}",
+    )
 
-if st.button("Submit"):
-    if selected_option is not None:  # Check if an option is selected
-        # Save the response
-        responses[randomized_questions[index][0]] = selected_option
-
-        # Increment the question index
-        st.session_state["current_question_index"] += 1
-
-        # Save responses to session state
-        st.session_state["responses"] = responses
-
-        # Rerender the application to show the next question
-        st.experimental_rerun()
-    else:
-        # Show an error if no option was selected
-        st.error("Please select an option before proceeding.")
-
-    # Button to go to the next question
+    # Button to submit the answer and move to the next question
     if st.button("Submit"):
-if selected_option is not None:  # Correct indentation starts here
-    responses[randomized_questions[index][0]] = selected_option
-        st.session_state["current_question_index"] += 1
-        st.session_state["responses"] = responses
-        st.experimental_rerun()  # Force rerendering
-    else:
-        st.error("Please select an option.")
+        if selected_option is not None:  # Check if an option is selected
+            # Save the response
+            responses[randomized_questions[index][0]] = selected_option
+
+            # Increment the question index
+            st.session_state["current_question_index"] += 1
+
+            # Save responses to session state
+            st.session_state["responses"] = responses
+
+            # Rerender the application to show the next question
+            st.experimental_rerun()
+        else:
+            # Show an error if no option was selected
+            st.error("Please select an option before proceeding.")
 
 # Check if there are more questions to display
 if "applicant_info" not in st.session_state or not st.session_state["applicant_info"].get("submitted"):
