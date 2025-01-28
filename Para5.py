@@ -536,7 +536,8 @@ for question_key, question_data in randomized_questions:
         "Select an option:",
         options=list(question_data["options"].keys()),
         format_func=lambda x: question_data["options"][x],
-        key=question_key
+        key=question_key,
+        index=-1  # Ensures radio buttons are empty by default
     )
 
 # Functions for eligibility calculations
