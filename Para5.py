@@ -62,29 +62,32 @@ def collect_applicant_info():
                 st.error("Please fill out all fields correctly.")
     elif st.session_state["current_step"] == "questionnaire":
         # Display the questionnaire after demographics are submitted
-        display_question(st.session_state["current_question_index"])
+        if st.session_state["current_question_index"] < len(st.session_state["randomized_questions"]):
+            display_question(st.session_state["current_question_index"])
+        else:
+            # Once all questions are answered
+            st.title("Thank You!")
+            st.write("You have completed the questionnaire.")
+            st.json(st.session_state["responses"])
 
 # Function to display questions and collect responses
 def display_question(index):
-    if index < len(st.session_state["randomized_questions"]):
-        question_data = st.session_state["randomized_questions"][index][1]
-        st.write(f"Question {index + 1}: {question_data['text']}")
+    question_data = st.session_state["randomized_questions"][index][1]
+    st.write(f"Question {index + 1}: {question_data['text']}")
 
-        # Use st.radio to display options
-        selected_option = st.radio(
-            "Choose an option:",
-            options=list(question_data["options"].keys()),
-            format_func=lambda x: question_data["options"][x],
-            key=f"radio_question_{index}",
-        )
+    # Use st.radio to display options
+    selected_option = st.radio(
+        "Choose an option:",
+        options=list(question_data["options"].keys()),
+        format_func=lambda x: question_data["options"][x],
+        key=f"radio_question_{index}",
+    )
 
-        if selected_option:
-            # Save the selected option to responses
-            st.session_state["responses"][st.session_state["randomized_questions"][index][0]] = selected_option
-            # Increment the question index
-            st.session_state["current_question_index"] += 1
-            # Automatically go to the next question
-            st.experimental_rerun()
+    if selected_option:
+        # Save the selected option to responses
+        st.session_state["responses"][st.session_state["randomized_questions"][index][0]] = selected_option
+        # Increment the question index
+        st.session_state["current_question_index"] += 1
 
 # Main application logic
 collect_applicant_info()
