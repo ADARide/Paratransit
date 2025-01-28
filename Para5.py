@@ -340,7 +340,7 @@ def display_question(index):
     )
 
     # Button to submit the answer and move to the next question
-    if st.button("Submit Answer", key=f"submit_answer_{index}"):
+    if st.button("Submit Answer", key=f"button_submit_answer_{index}"):  # Unique key for the button
         if selected_option is not None:  # Check if an option is selected
             # Save the response
             st.session_state["responses"][randomized_questions[index][0]] = selected_option
