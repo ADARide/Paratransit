@@ -42,18 +42,14 @@ else:
     gender = st.selectbox("Gender:", ["Male", "Female", "Other"])
     mobility_device = st.radio("Do you use a mobility device?", ["Yes", "No"])
 
-    if st.button("Submit"):
-        # Validation
-        if not name or not age or not gender or not mobility_device:
-            st.error("Please fill out all fields correctly.")
-        else:
-            # Save information
-            applicant_info["Name"] = name.strip()
-            applicant_info["Age"] = int(age)
-            applicant_info["Gender"] = gender
-            applicant_info["Mobility Device"] = mobility_device
-            st.success("Information submitted successfully!")
-            return applicant_info
+if st.button("Submit"):
+    if selected_option is not None:
+        responses[randomized_questions[index][0]] = selected_option
+        st.session_state["current_question_index"] += 1
+        st.session_state["responses"] = responses
+        st.experimental_rerun()  # Force rerendering
+    else:
+        st.error("Please select an option.")
 
 # Call demographic collection
 collect_applicant_info()
