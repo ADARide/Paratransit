@@ -33,12 +33,12 @@ if not st.session_state["applicant_info"].get("submitted", False):
     st.write("Please provide your information below:")
 
     # Streamlit widgets for data collection
-    name = st.text_input("Full Name:")
-    age = st.number_input("Age:", min_value=0, max_value=120, step=1)
-    gender = st.selectbox("Gender:", ["Male", "Female", "Other"])
-    mobility_device = st.radio("Do you use a mobility device?", ["Yes", "No"])
+    name = st.text_input("Full Name:", key="name_input")
+    age = st.number_input("Age:", min_value=0, max_value=120, step=1, key="age_input")
+    gender = st.selectbox("Gender:", ["Male", "Female", "Other"], key="gender_select")
+    mobility_device = st.radio("Do you use a mobility device?", ["Yes", "No"], key="mobility_radio")
 
-    if st.button("Submit Demographics"):
+    if st.button("Submit Demographics", key="submit_demographics"):
         if name.strip() and age and gender and mobility_device:
             # Save demographic info to session state
             st.session_state["applicant_info"] = {
@@ -72,7 +72,7 @@ def display_question(index):
         "Choose an option:",
         options=list(question_data["options"].keys()),
         format_func=lambda x: question_data["options"][x],
-        key=f"question_{index}",
+        key=f"question_{index}_radio",
     )
 
     # Button to submit the answer and move to the next question
@@ -250,114 +250,30 @@ def calculate_and_display_results():
 
     justification = generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info)
 
-    for widget in frame.winfo_children():
-        widget.destroy()
-
-    result_label = tk.Label(
-        frame,
-        text=f"Overall Score: {score}\nEligibility: {eligibility}\nPCA Required: {pca_needed}",
-        wraplength=400,
-        justify="left",
-    )
-    result_label.pack(pady=10)
-
-    breakdown_label = tk.Label(frame, text=justification, wraplength=400, justify="left")
-    breakdown_label.pack(pady=10)
-
-    close_button = tk.Button(frame, text="Close", command=root.destroy)
-    close_button.pack(pady=20)
-
-def next_question():
-    global current_question_index, responses
-
-    selected_option = var.get()
-    if selected_option == -1:
-        messagebox.showwarning("Input Required", "Please select an option before proceeding.")
-        return
-
-    question_key = randomized_questions[current_question_index][0]
-    responses[question_key] = selected_option
-
-    current_question_index += 1
-
-    if current_question_index < len(randomized_questions):
-        display_question()
-    else:
-        calculate_and_display_results()
-
-def display_question():
-    global current_question_index
-
-    question_data = randomized_questions[current_question_index][1]
-
-    for widget in frame.winfo_children():
-        widget.destroy()
-
-    question_label = tk.Label(frame, text=question_data["text"], wraplength=400, justify="left")
-    question_label.pack(pady=10)
-
-    global var
-    var = tk.IntVar(value=-1)
-    for value, option in question_data["options"].items():
-        tk.Radiobutton(frame, text=option, variable=var, value=value).pack(anchor="w")
-
-    next_button = tk.Button(frame, text="Next", command=next_question)
-    next_button.pack(pady=20)
-
-import streamlit as st
-
-# Title of the application
-st.title("Paratransit Eligibility Questionnaire")
-
-# Display questions one by one
-current_question_index = st.session_state.get("current_question_index", 0)
-responses = st.session_state.get("responses", {})
-
-# Function to display a question
-def display_question(index):
-    question_data = randomized_questions[index][1]
-    st.write(question_data["text"])
-
-    # Radio buttons for answer choices
-    selected_option = st.radio(
-    "Choose an option:",
-    options=list(question_data["options"].keys()),
-    format_func=lambda x: question_data["options"][x],
-    key=f"question_{index}",
-)
-    # Button to submit the answer and move to the next question
-    if st.button("Submit Answer", key=f"submit_answer_{index}"):
-        if selected_option is not None:  # Ensure an option is selected
-            # Save the response
-            st.session_state["responses"][randomized_questions[index][0]] = selected_option
-
-            # Increment the question index
-            st.session_state["current_question_index"] += 1
-
-            # Rerun the app to display the next question
-            st.experimental_rerun()
-        else:
-            # Display an error message if no option is selected
-            st.error("Please select an option before proceeding.")
+    st.title("Results")
+    st.write(f"Overall Score: {score}")
+    st.write(f"Eligibility: {eligibility}")
+    st.write(f"PCA Required: {pca_needed}")
+    st.write(justification)
 
 # Main flow logic
 if "applicant_info" not in st.session_state or not st.session_state["applicant_info"].get("submitted"):
     st.title("Demographics")
     st.write("Please provide your demographic information below:")
 
-    name = st.text_input("Full Name:")
-    age = st.number_input("Age:", min_value=0, max_value=120, step=1)
-    gender = st.selectbox("Gender:", ["Male", "Female", "Other"])
-    mobility_device = st.radio("Do you use a mobility device?", ["Yes", "No"])
+    name = st.text_input("Full Name:", key="name_input")
+    age = st.number_input("Age:", min_value=0, max_value=120, step=1, key="age_input")
+    gender = st.selectbox("Gender:", ["Male", "Female", "Other"], key="gender_select")
+    mobility_device = st.radio("Do you use a mobility device?", ["Yes", "No"], key="mobility_radio")
 
-    if st.button("Submit Demographics"):
-        if name and age and gender and mobility_device:
+    if st.button("Submit Demographics", key="submit_demographics"):
+        if name.strip() and age and gender and mobility_device:
             st.session_state["applicant_info"] = {
                 "Name": name.strip(),
                 "Age": int(age),
                 "Gender": gender,
                 "Mobility Device": mobility_device,
-                "submitted": True,
+                "submitted": True
             }
             st.session_state["current_question_index"] = 0
             st.experimental_rerun()
@@ -365,7 +281,6 @@ if "applicant_info" not in st.session_state or not st.session_state["applicant_i
             st.error("Please fill out all fields correctly.")
 else:
     current_question_index = st.session_state.get("current_question_index", 0)
-
     if current_question_index < len(randomized_questions):
         display_question(current_question_index)
     else:
@@ -373,3 +288,7 @@ else:
         st.write("You have completed the questionnaire.")
         st.write("Your responses:")
         st.json(st.session_state["responses"])
+
+# Call the results function after all questions are complete
+if len(st.session_state.get("responses", {})) == len(questions):
+    calculate_and_display_results()
