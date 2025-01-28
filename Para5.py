@@ -12,9 +12,12 @@ LIFE_EXPECTANCY = {
 if "applicant_info" not in st.session_state:
     st.session_state["applicant_info"] = {"submitted": False}
 
+if "current_step" not in st.session_state:
+    st.session_state["current_step"] = "demographics"  # Start with the demographics step
+
 # Function to collect applicant demographics
 def collect_applicant_info():
-    if not st.session_state["applicant_info"]["submitted"]:
+    if st.session_state["current_step"] == "demographics":
         st.title("Applicant Demographics")
         st.write("Please provide your information below:")
 
@@ -35,13 +38,13 @@ def collect_applicant_info():
                     "Mobility Device": mobility_device,
                     "submitted": True,
                 }
-                # Transition directly to the questionnaire by rerunning
-                st.experimental_rerun()
+                # Transition directly to the questionnaire
+                st.session_state["current_step"] = "questionnaire"
             else:
                 st.error("Please fill out all fields correctly.")
-    else:
-        # Skip demographics and proceed to questionnaire
-        st.experimental_rerun()
+    elif st.session_state["current_step"] == "questionnaire":
+        # Display the questionnaire (this part will be added as needed)
+        st.write("Now, let's start the questionnaire.")
 
 # Call the function to display the demographics form
 collect_applicant_info()
