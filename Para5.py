@@ -526,8 +526,9 @@ questions = {
 if "randomized_questions" not in st.session_state:
     st.session_state.randomized_questions = list(questions.items())
     random.shuffle(st.session_state.randomized_questions)
+    st.session_state.responses = {key: None for key in questions.keys()}
 
-responses = {}
+responses = st.session_state.responses
 
 # Questionnaire display
 st.header("Questionnaire")
@@ -537,7 +538,8 @@ for question_key, question_data in st.session_state.randomized_questions:
         "Select an option:",
         options=list(question_data["options"].keys()),
         format_func=lambda x: question_data["options"][x],
-        key=question_key
+        key=question_key,
+        index=None
     )
 
 # Functions for eligibility calculations
