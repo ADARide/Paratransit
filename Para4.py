@@ -789,8 +789,8 @@ if st.button("Submit"):
 
     # Button to go to the next question
     if st.button("Submit"):
-    if selected_option is not None:
-        responses[randomized_questions[index][0]] = selected_option
+if selected_option is not None:  # Correct indentation starts here
+    responses[randomized_questions[index][0]] = selected_option
         st.session_state["current_question_index"] += 1
         st.session_state["responses"] = responses
         st.experimental_rerun()  # Force rerendering
