@@ -532,9 +532,6 @@ responses = {}
 # Questionnaire display
 st.header("Questionnaire")
 for question_key, question_data in st.session_state.randomized_questions:
-    if question_key not in st.session_state:
-        st.session_state[question_key] = None
-
     st.subheader(question_data["text"])
     responses[question_key] = st.radio(
         "Select an option:",
@@ -542,8 +539,6 @@ for question_key, question_data in st.session_state.randomized_questions:
         format_func=lambda x: question_data["options"][x],
         key=question_key
     )
-
-    st.session_state[question_key] = responses[question_key]
 
 # Functions for eligibility calculations
 def calculate_score(responses):
