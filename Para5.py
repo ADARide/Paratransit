@@ -522,15 +522,16 @@ questions = {
     }
 }
 
-# Shuffle the questions for randomness
-randomized_questions = list(questions.items())
-random.shuffle(randomized_questions)
+# Shuffle the questions only once
+if "randomized_questions" not in st.session_state:
+    st.session_state.randomized_questions = list(questions.items())
+    random.shuffle(st.session_state.randomized_questions)
 
 responses = {}
 
 # Questionnaire display
 st.header("Questionnaire")
-for question_key, question_data in randomized_questions:
+for question_key, question_data in st.session_state.randomized_questions:
     st.subheader(question_data["text"])
     responses[question_key] = st.radio(
         "Select an option:",
