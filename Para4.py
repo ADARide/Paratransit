@@ -774,13 +774,13 @@ if st.button("Submit"):
     if selected_option is not None:  # Check if an option is selected
         # Save the response
         responses[randomized_questions[index][0]] = selected_option
-        
+
         # Increment the question index
         st.session_state["current_question_index"] += 1
-        
+
         # Save responses to session state
         st.session_state["responses"] = responses
-        
+
         # Rerender the application to show the next question
         st.experimental_rerun()
     else:
