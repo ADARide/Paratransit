@@ -8,49 +8,43 @@ LIFE_EXPECTANCY = {
     "Other": 76  # Default life expectancy for non-binary/unspecified gender
 }
 
-# Collect applicant demographics
-applicant_info = {}
+# Initialize session state to store applicant information
+if "applicant_info" not in st.session_state:
+    st.session_state["applicant_info"] = {"submitted": False}
 
+# Function to collect applicant demographics
 def collect_applicant_info():
-    def submit_info():
-        try:
-            applicant_info["Name"] = name_entry.get().strip()
-            applicant_info["Age"] = int(age_entry.get().strip())
-            applicant_info["Gender"] = gender_var.get()
-            applicant_info["Mobility Device"] = mobility_var.get()
-            if not applicant_info["Name"] or not applicant_info["Gender"] or not applicant_info["Mobility Device"]:
-                raise ValueError
-            root.destroy()
-        except ValueError:
-            messagebox.showerror("Error", "Please fill out all fields correctly.")
+    if not st.session_state["applicant_info"]["submitted"]:
+        st.title("Applicant Demographics")
+        st.write("Please provide your information below:")
 
-    root = tk.Tk()
-    root.title("Applicant Demographics")
+        # Streamlit widgets for user input
+        name = st.text_input("Full Name:", key="name_input")
+        age = st.number_input("Age:", min_value=0, max_value=120, step=1, key="age_input")
+        gender = st.selectbox("Gender:", ["Male", "Female", "Other"], key="gender_input")
+        mobility_device = st.radio("Do you use a mobility device?", ["Yes", "No"], key="mobility_device_input")
 
-    tk.Label(root, text="Please provide your information:").grid(row=0, column=0, columnspan=2, pady=10)
+        if st.button("Submit"):
+            # Validate the inputs
+            if name.strip() and age and gender and mobility_device:
+                # Save the applicant info in session state
+                st.session_state["applicant_info"] = {
+                    "Name": name.strip(),
+                    "Age": int(age),
+                    "Gender": gender,
+                    "Mobility Device": mobility_device,
+                    "submitted": True,
+                }
+                st.success("Demographics submitted successfully!")
+            else:
+                st.error("Please fill out all fields correctly.")
+    else:
+        st.success("Demographics have already been submitted.")
+        st.write("Here is the information you provided:")
+        st.json(st.session_state["applicant_info"])
 
-    tk.Label(root, text="Full Name:").grid(row=1, column=0, sticky="e")
-    name_entry = tk.Entry(root)
-    name_entry.grid(row=1, column=1)
 
-    tk.Label(root, text="Age:").grid(row=2, column=0, sticky="e")
-    age_entry = tk.Entry(root)
-    age_entry.grid(row=2, column=1)
-
-    tk.Label(root, text="Gender:").grid(row=3, column=0, sticky="e")
-    gender_var = tk.StringVar(value="Other")
-    gender_menu = tk.OptionMenu(root, gender_var, "Male", "Female", "Other")
-    gender_menu.grid(row=3, column=1)
-
-    tk.Label(root, text="Do you use a mobility device?").grid(row=4, column=0, sticky="e")
-    mobility_var = tk.StringVar(value="No")
-    mobility_menu = tk.OptionMenu(root, mobility_var, "Yes", "No")
-    mobility_menu.grid(row=4, column=1)
-
-    tk.Button(root, text="Submit", command=submit_info).grid(row=5, column=0, columnspan=2, pady=10)
-    root.mainloop()
-
-# Call demographic collection
+# Call the function to display the demographics form
 collect_applicant_info()
 
 # Define the questions
