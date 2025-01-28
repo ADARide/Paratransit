@@ -708,7 +708,8 @@ def display_question(index):
         if selected_option is not None:
             st.session_state["responses"][randomized_questions[index][0]] = selected_option
             st.session_state["current_question_index"] += 1
-            st.experimental_rerun()
+            # Redirect instead of rerunning for improved stability
+            st.experimental_set_query_params(question=str(st.session_state["current_question_index"]))
         else:
             st.error("Please select an option before proceeding.")
 
