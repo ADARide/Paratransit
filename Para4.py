@@ -24,7 +24,7 @@ def collect_applicant_info():
         except ValueError:
             messagebox.showerror("Error", "Please fill out all fields correctly.")
 
-## Track demographic submission
+# Track demographic submission
 if "applicant_info" not in st.session_state:
     st.session_state["applicant_info"] = {"submitted": False}
 
@@ -42,7 +42,7 @@ if not st.session_state["applicant_info"]["submitted"]:
         index=["Yes", "No"].index(st.session_state["applicant_info"].get("Mobility Device", "No"))
     )
 
-    if st.button("Submit Demographics"):
+    if st.button("Submit Demographics", key="submit_demographics"):
         # Validate input
         if name.strip() and age and gender and mobility_device:
             # Save demographic info to session state
@@ -66,15 +66,37 @@ else:
     st.write(f"**Mobility Device:** {st.session_state['applicant_info']['Mobility Device']}")
     st.success("You can now proceed to the next section.")
 
+
 # Question submission logic
-if st.button("Submit"):
-    if selected_option is not None:
-        responses[randomized_questions[index][0]] = selected_option
-        st.session_state["current_question_index"] += 1
-        st.session_state["responses"] = responses
-        st.experimental_rerun()  # Reload app to show the next question
-    else:
-        st.error("Please select an option.")
+def display_question(index):
+    question_data = randomized_questions[index][1]
+    st.write(question_data["text"])
+
+    # Radio buttons for answer choices
+    selected_option = st.radio(
+        "Choose an option:",
+        options=list(question_data["options"].keys()),
+        format_func=lambda x: question_data["options"][x],
+        key=f"question_{index}",
+    )
+
+    # Button to submit the answer and move to the next question
+    if st.button("Submit Answer", key=f"submit_answer_{index}"):
+        if selected_option is not None:  # Check if an option is selected
+            responses[randomized_questions[index][0]] = selected_option
+
+            # Increment the question index
+            st.session_state["current_question_index"] += 1
+
+            # Save responses to session state
+            st.session_state["responses"] = responses
+
+            # Rerender the application to show the next question
+            st.experimental_rerun()
+        else:
+            # Show an error if no option was selected
+            st.error("Please select an option before proceeding.")
+
 
 # Define the questions
 questions = {
