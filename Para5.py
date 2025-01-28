@@ -690,6 +690,7 @@ def generate_justification(score, eligibility, middle_count, classifications, ca
     )
 
     return justification
+
 # Display questions one by one
 def display_question(index):
     question_data = randomized_questions[index][1]
@@ -699,24 +700,27 @@ def display_question(index):
     if f"selected_option_{index}" not in st.session_state:
         st.session_state[f"selected_option_{index}"] = None
 
+    # Capture the user's choice
     selected_option = st.radio(
         "Choose an option:",
         options=list(question_data["options"].keys()),
         format_func=lambda x: question_data["options"][x],
+        index=-1 if st.session_state[f"selected_option_{index}"] is None else
+        list(question_data["options"].keys()).index(st.session_state[f"selected_option_{index}"]),
         key=f"radio_question_{index}",
     )
 
     # Update the selected option in session state
     st.session_state[f"selected_option_{index}"] = selected_option
 
-    # Submit button to move to the next question
-    submit_clicked = st.button("Submit Answer", key=f"submit_answer_{index}")
-    if submit_clicked:
-        if st.session_state[f"selected_option_{index}"] is not None:  # Ensure an option is selected
+    # Submit button logic
+    if st.button("Submit Answer", key=f"submit_answer_{index}"):
+        if selected_option is not None:
             # Save the selected option to responses
-            st.session_state["responses"][randomized_questions[index][0]] = st.session_state[f"selected_option_{index}"]
+            st.session_state["responses"][randomized_questions[index][0]] = selected_option
             # Increment the question index
             st.session_state["current_question_index"] += 1
+            st.experimental_rerun()  # Trigger rerun for the next question
         else:
             st.error("Please select an option before proceeding.")
 
