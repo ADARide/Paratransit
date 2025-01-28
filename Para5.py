@@ -690,7 +690,6 @@ def generate_justification(score, eligibility, middle_count, classifications, ca
     )
 
     return justification
-
 # Display questions one by one
 def display_question(index):
     question_data = randomized_questions[index][1]
@@ -705,25 +704,27 @@ def display_question(index):
     )
 
     # Submit button to move to the next question
-    submit_clicked = st.button("Submit Answer", key=f"submit_answer_{index}")
-    if submit_clicked:
+    if st.button("Submit Answer", key=f"submit_answer_{index}"):
         if selected_option is not None:  # Ensure an option is selected
             # Save the selected option to responses
             st.session_state["responses"][randomized_questions[index][0]] = selected_option
             # Increment the question index
             st.session_state["current_question_index"] += 1
+            # Trigger a rerun by updating the query parameters
+            st.session_state["query_params_updated"] = True
         else:
             st.error("Please select an option before proceeding.")
 
-
-# Initialize query parameters
+# Initialize session state for the app
 if "current_question_index" not in st.session_state:
     query_params = st.experimental_get_query_params()
     st.session_state["current_question_index"] = int(query_params.get("question_index", [0])[0])
     st.session_state["responses"] = {}
 
-# Handle query parameter updates
-st.query_params = {"question_index": st.session_state["current_question_index"]}
+# Handle automatic rerun logic
+if "query_params_updated" in st.session_state and st.session_state["query_params_updated"]:
+    st.session_state["query_params_updated"] = False  # Reset the trigger
+    st.query_params = {"question_index": st.session_state["current_question_index"]}
 
 # Check if there are questions remaining
 if st.session_state["current_question_index"] < len(randomized_questions):
