@@ -803,7 +803,7 @@ def display_question(index):
 
 # Button to submit the answer and move to the next question
 if st.button("Submit"):
-        if selected_option is not None:  # Check if an option is selected
+    if selected_option is not None:  # Check if an option is selected
         # Save the response
         responses[randomized_questions[index][0]] = selected_option
 
@@ -815,7 +815,7 @@ if st.button("Submit"):
 
         # Rerender the application to show the next question
         st.experimental_rerun()
-        else:
+    else:
         # Show an error if no option was selected
         st.error("Please select an option before proceeding.")
 
