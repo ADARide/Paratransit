@@ -8,20 +8,20 @@ LIFE_EXPECTANCY = {
     "Other": 76  # Default life expectancy for non-binary/unspecified gender
 }
 
-# Initialize session state to store applicant information
+# Initialize session state
 if "applicant_info" not in st.session_state:
     st.session_state["applicant_info"] = {"submitted": False}
 
 if "current_step" not in st.session_state:
-    st.session_state["current_step"] = "demographics"  # Start with the demographics step
+    st.session_state["current_step"] = "demographics"
 
-# Example questions for the questionnaire
+# Example questions
 questions = {
     "Q1": {"text": "How often do you use public transit?", "options": {1: "Never", 2: "Rarely", 3: "Sometimes", 4: "Often", 5: "Always"}},
     "Q2": {"text": "How confident are you navigating bus routes?", "options": {1: "Not at all", 2: "Slightly", 3: "Moderately", 4: "Very", 5: "Extremely"}},
 }
 
-# Shuffle the questions for randomness
+# Shuffle questions
 if "randomized_questions" not in st.session_state:
     randomized_questions = list(questions.items())
     random.shuffle(randomized_questions)
@@ -38,17 +38,12 @@ def collect_applicant_info():
     if st.session_state["current_step"] == "demographics":
         st.title("Applicant Demographics")
         st.write("Please provide your information below:")
-
-        # Streamlit widgets for user input
         name = st.text_input("Full Name:", key="name_input")
         age = st.number_input("Age:", min_value=0, max_value=120, step=1, key="age_input")
         gender = st.selectbox("Gender:", ["Male", "Female", "Other"], key="gender_input")
         mobility_device = st.radio("Do you use a mobility device?", ["Yes", "No"], key="mobility_device_input")
-
         if st.button("Submit"):
-            # Validate the inputs
             if name.strip() and age and gender and mobility_device:
-                # Save the applicant info in session state
                 st.session_state["applicant_info"] = {
                     "Name": name.strip(),
                     "Age": int(age),
@@ -56,41 +51,29 @@ def collect_applicant_info():
                     "Mobility Device": mobility_device,
                     "submitted": True,
                 }
-                # Transition directly to the questionnaire
                 st.session_state["current_step"] = "questionnaire"
-            else:
-                st.error("Please fill out all fields correctly.")
-    elif st.session_state["current_step"] == "questionnaire":
-        # Display the questionnaire after demographics are submitted
-        if st.session_state["current_question_index"] < len(st.session_state["randomized_questions"]):
-            display_question(st.session_state["current_question_index"])
-        else:
-            # Once all questions are answered
-            st.title("Thank You!")
-            st.write("You have completed the questionnaire.")
-            st.json(st.session_state["responses"])
 
-# Function to display questions and collect responses
+# Function to display questions
 def display_question(index):
-    question_data = st.session_state["randomized_questions"][index][1]
-    st.write(f"Question {index + 1}: {question_data['text']}")
+    if index < len(st.session_state["randomized_questions"]):
+        question_data = st.session_state["randomized_questions"][index][1]
+        st.write(f"Question {index + 1}: {question_data['text']}")
+        selected_option = st.radio(
+            "Choose an option:",
+            options=list(question_data["options"].keys()),
+            format_func=lambda x: question_data["options"][x],
+            key=f"radio_question_{index}",
+        )
+        if selected_option:
+            st.session_state["responses"][st.session_state["randomized_questions"][index][0]] = selected_option
+            st.session_state["current_question_index"] += 1
+            st.experimental_rerun()
 
-    # Use st.radio to display options
-    selected_option = st.radio(
-        "Choose an option:",
-        options=list(question_data["options"].keys()),
-        format_func=lambda x: question_data["options"][x],
-        key=f"radio_question_{index}",
-    )
-
-    if selected_option:
-        # Save the selected option to responses
-        st.session_state["responses"][st.session_state["randomized_questions"][index][0]] = selected_option
-        # Increment the question index
-        st.session_state["current_question_index"] += 1
-
-# Main application logic
-collect_applicant_info()
+# Main logic
+if st.session_state["current_step"] == "demographics":
+    collect_applicant_info()
+elif st.session_state["current_step"] == "questionnaire":
+    display_question(st.session_state["current_question_index"])
 
 # Define the questions
 questions = {
