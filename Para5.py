@@ -18,7 +18,7 @@ applicant_info["Age"] = st.sidebar.number_input("Age", min_value=0, step=1)
 applicant_info["Gender"] = st.sidebar.selectbox("Gender", ["Male", "Female", "Other"])
 applicant_info["Mobility Device"] = st.sidebar.selectbox("Do you use a mobility device?", ["Yes", "No"])
 
-## Define the questions
+# Define the questions
 questions = {
     "Q1": {
         "text": "How often do you use public transit?",
@@ -529,12 +529,14 @@ random.shuffle(randomized_questions)
 responses = {}
 
 # Questionnaire display
+st.header("Questionnaire")
 for question_key, question_data in randomized_questions:
     st.subheader(question_data["text"])
     responses[question_key] = st.radio(
         "Select an option:",
         options=list(question_data["options"].keys()),
-        format_func=lambda x: question_data["options"][x]
+        format_func=lambda x: question_data["options"][x],
+        key=question_key
     )
 
 # Functions for eligibility calculations
