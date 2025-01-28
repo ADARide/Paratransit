@@ -526,6 +526,9 @@ questions = {
 if "randomized_questions" not in st.session_state:
     st.session_state.randomized_questions = list(questions.items())
     random.shuffle(st.session_state.randomized_questions)
+
+# Initialize responses if not already set
+if "responses" not in st.session_state:
     st.session_state.responses = {key: None for key in questions.keys()}
 
 responses = st.session_state.responses
@@ -536,10 +539,9 @@ for question_key, question_data in st.session_state.randomized_questions:
     st.subheader(question_data["text"])
     responses[question_key] = st.radio(
         "Select an option:",
-        options=list(question_data["options"].keys()),
-        format_func=lambda x: question_data["options"][x],
-        key=question_key,
-        index=None
+        options=[None] + list(question_data["options"].keys()),
+        format_func=lambda x: "" if x is None else question_data["options"][x],
+        key=question_key
     )
 
 # Functions for eligibility calculations
