@@ -316,29 +316,29 @@ responses = st.session_state.get("responses", {})
 # Display questions one by one
 def display_question(index):
     question_data = randomized_questions[index][1]
-    st.write(f"Question {index + 1}: {question_data['text']}")  # Display the question text
+    st.write(f"Question {index + 1}: {question_data['text']}")  # Display question number and text
 
     # Radio buttons for answer choices
     selected_option = st.radio(
         "Choose an option:",
         options=list(question_data["options"].keys()),
         format_func=lambda x: question_data["options"][x],
-        key=f"radio_question_{index}"  # Unique key for each question's radio button
+        key=f"radio_question_{index}",  # Unique key for radio buttons
     )
 
-    # Button to submit the answer and move to the next question
-    if st.button("Submit Answer", key=f"button_submit_answer_{index}"):  # Unique key for each question's button
+    # Button to submit the answer
+    if st.button("Submit Answer", key=f"submit_answer_{index}"):  # Ensure button key is unique
         if selected_option is not None:  # Check if an option is selected
-            # Save the response
+            if "responses" not in st.session_state:  # Initialize if not set
+                st.session_state["responses"] = {}
             st.session_state["responses"][randomized_questions[index][0]] = selected_option
 
             # Increment the question index
             st.session_state["current_question_index"] += 1
 
-            # Rerun the app to display the next question
+            # Rerun the app to load the next question
             st.experimental_rerun()
         else:
-            # Display an error message if no option is selected
             st.error("Please select an option before proceeding.")
 
 # Check if there are more questions to display
