@@ -320,12 +320,11 @@ def display_question(index):
 
     # Radio buttons for answer choices
     selected_option = st.radio(
-        "Choose an option:",
-        options=list(question_data["options"].keys()),
-        format_func=lambda x: question "options"][x],
-        key=f"question_{index}",
-    )
-
+    "Choose an option:",
+    options=list(question_data["options"].keys()),
+    format_func=lambda x: question_data["options"][x],
+    key=f"question_{index}",
+)
     # Button to submit the answer and move to the next question
     if st.button("Submit Answer", key=f"submit_answer_{index}"):
         if selected_option is not None:  # Ensure an option is selected
