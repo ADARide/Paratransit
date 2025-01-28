@@ -801,23 +801,23 @@ def display_question(index):
         key=f"question_{index}",
     )
 
-    # Button to submit the answer and move to the next question
-    if st.button("Submit"):
-        if selected_option is not None:  # Check if an option is selected
-            # Save the response
-            responses[randomized_questions[index][0]] = selected_option
+# Button to submit the answer and move to the next question
+if st.button("Submit"):
+    if selected_option is not None:  # Check if an option is selected
+        # Save the response
+        responses[randomized_questions[index][0]] = selected_option
 
-            # Increment the question index
-            st.session_state["current_question_index"] += 1
+        # Increment the question index
+        st.session_state["current_question_index"] += 1
 
-            # Save responses to session state
-            st.session_state["responses"] = responses
+        # Save responses to session state
+        st.session_state["responses"] = responses
 
-            # Rerender the application to show the next question
-            st.experimental_rerun()
-        else:
-            # Show an error if no option was selected
-            st.error("Please select an option before proceeding.")
+        # Rerender the application to show the next question
+        st.experimental_rerun()
+    else:
+        # Show an error if no option was selected
+        st.error("Please select an option before proceeding.")
 
 # Check if there are more questions to display
 if "applicant_info" not in st.session_state or not st.session_state["applicant_info"].get("submitted"):
