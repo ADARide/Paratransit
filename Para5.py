@@ -705,25 +705,25 @@ def display_question(index):
     )
 
     # Submit button to move to the next question
-    if st.button("Submit Answer", key=f"submit_answer_{index}"):
-        if selected_option is not None:  # Check if an option is selected
+    submit_clicked = st.button("Submit Answer", key=f"submit_answer_{index}")
+    if submit_clicked:
+        if selected_option is not None:  # Ensure an option is selected
             # Save the selected option to responses
             st.session_state["responses"][randomized_questions[index][0]] = selected_option
             # Increment the question index
             st.session_state["current_question_index"] += 1
-            # Update query parameters to reflect the next question
-            st.session_state["rerun_trigger"] = True
         else:
             st.error("Please select an option before proceeding.")
 
 
-# Handle reruns manually (avoid st.experimental_rerun)
-if "rerun_trigger" in st.session_state and st.session_state["rerun_trigger"]:
-    st.session_state["rerun_trigger"] = False  # Reset the trigger
-    st.experimental_set_query_params(
-        question_index=st.session_state["current_question_index"]
-    )
+# Initialize query parameters
+if "current_question_index" not in st.session_state:
+    query_params = st.experimental_get_query_params()
+    st.session_state["current_question_index"] = int(query_params.get("question_index", [0])[0])
+    st.session_state["responses"] = {}
 
+# Handle query parameter updates
+st.query_params = {"question_index": st.session_state["current_question_index"]}
 
 # Check if there are questions remaining
 if st.session_state["current_question_index"] < len(randomized_questions):
