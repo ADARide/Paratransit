@@ -313,20 +313,7 @@ st.title("Paratransit Eligibility Questionnaire")
 current_question_index = st.session_state.get("current_question_index", 0)
 responses = st.session_state.get("responses", {})
 
-# Function to display a question
-def display_question(index):
-    question_data = randomized_questions[index][1]
-    st.write(question_data["text"])
-
-    # Radio buttons for answer choices
-    selected_option = st.radio(
-        "Choose an option:",
-        options=list(question_data["options"].keys()),
-        format_func=lambda x: question_data["options"][x],
-        key=f"question_{index}",
-    )
-
-# Function to display a question
+# Display questions one by one
 def display_question(index):
     question_data = randomized_questions[index][1]
     st.write(f"Question {index + 1}: {question_data['text']}")  # Display the question text
@@ -336,11 +323,11 @@ def display_question(index):
         "Choose an option:",
         options=list(question_data["options"].keys()),
         format_func=lambda x: question_data["options"][x],
-        key=f"radio_question_{index}",  # Ensure unique key for each question
+        key=f"radio_question_{index}"  # Unique key for each question's radio button
     )
 
     # Button to submit the answer and move to the next question
-    if st.button("Submit Answer", key=f"button_submit_answer_{index}"):  # Unique key for the button
+    if st.button("Submit Answer", key=f"button_submit_answer_{index}"):  # Unique key for each question's button
         if selected_option is not None:  # Check if an option is selected
             # Save the response
             st.session_state["responses"][randomized_questions[index][0]] = selected_option
@@ -355,21 +342,10 @@ def display_question(index):
             st.error("Please select an option before proceeding.")
 
 # Check if there are more questions to display
-if "applicant_info" not in st.session_state or not st.session_state["applicant_info"].get("submitted"):
-    # Ensure demographic information is collected before displaying questions
-    demographic_info = collect_applicant_info()
-    if demographic_info:
-        st.session_state["applicant_info"] = demographic_info
-        st.session_state["applicant_info"]["submitted"] = True
+if st.session_state.get("current_question_index", 0) < len(randomized_questions):
+    display_question(st.session_state["current_question_index"])
 else:
-    current_question_index = st.session_state.get("current_question_index", 0)
-
-    # If there are still questions left, display the current question
-    if current_question_index < len(randomized_questions):
-        display_question(current_question_index)
-    else:
-        # Display a thank you message and user responses after all questions are completed
-        st.title("Thank You!")
-        st.write("You have completed the questionnaire.")
-        st.write("Here are your responses:")
-        st.json(st.session_state["responses"])
+    st.title("Thank You!")
+    st.write("You have completed the questionnaire.")
+    st.write("Here are your responses:")
+    st.json(st.session_state["responses"])
