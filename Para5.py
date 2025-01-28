@@ -690,12 +690,16 @@ def generate_justification(score, eligibility, middle_count, classifications, ca
     )
 
     return justification
+
 # Display questions one by one
 def display_question(index):
     question_data = randomized_questions[index][1]
     st.write(f"Question {index + 1}: {question_data['text']}")
 
     # Use st.radio to display options
+    if f"selected_option_{index}" not in st.session_state:
+        st.session_state[f"selected_option_{index}"] = None
+
     selected_option = st.radio(
         "Choose an option:",
         options=list(question_data["options"].keys()),
@@ -703,15 +707,18 @@ def display_question(index):
         key=f"radio_question_{index}",
     )
 
+    # Update the selected option in session state
+    st.session_state[f"selected_option_{index}"] = selected_option
+
     # Submit button to move to the next question
     if st.button("Submit Answer", key=f"submit_answer_{index}"):
-        if selected_option is not None:  # Ensure an option is selected
+        if st.session_state[f"selected_option_{index}"] is not None:  # Ensure an option is selected
             # Save the selected option to responses
-            st.session_state["responses"][randomized_questions[index][0]] = selected_option
+            st.session_state["responses"][randomized_questions[index][0]] = st.session_state[f"selected_option_{index}"]
             # Increment the question index
             st.session_state["current_question_index"] += 1
-            # Trigger a rerun by updating the query parameters
-            st.session_state["query_params_updated"] = True
+            # Trigger a rerun to show the next question
+            st.experimental_rerun()
         else:
             st.error("Please select an option before proceeding.")
 
@@ -720,11 +727,6 @@ if "current_question_index" not in st.session_state:
     query_params = st.experimental_get_query_params()
     st.session_state["current_question_index"] = int(query_params.get("question_index", [0])[0])
     st.session_state["responses"] = {}
-
-# Handle automatic rerun logic
-if "query_params_updated" in st.session_state and st.session_state["query_params_updated"]:
-    st.session_state["query_params_updated"] = False  # Reset the trigger
-    st.query_params = {"question_index": st.session_state["current_question_index"]}
 
 # Check if there are questions remaining
 if st.session_state["current_question_index"] < len(randomized_questions):
