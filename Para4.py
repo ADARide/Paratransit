@@ -24,9 +24,17 @@ def collect_applicant_info():
         except ValueError:
             messagebox.showerror("Error", "Please fill out all fields correctly.")
 
-def collect_applicant_info():
-    st.title("Applicant Demographics")
-    st.write("Please provide your information below:")
+# Track demographic submission
+if "applicant_info" not in st.session_state:
+    st.session_state["applicant_info"] = {}
+
+if not st.session_state["applicant_info"].get("submitted", False):
+    demographic_info = collect_applicant_info()
+    if demographic_info:
+        st.session_state["applicant_info"] = demographic_info
+        st.session_state["applicant_info"]["submitted"] = True
+else:
+    st.write("Demographic information has been saved.")
 
     # Streamlit widgets for data collection
     name = st.text_input("Full Name:")
@@ -759,22 +767,40 @@ def display_question(index):
     st.write(question_data["text"])
 
     # Radio buttons for answer choices
-    selected_option = st.radio(
-        "Choose an option:",
-        options=list(question_data["options"].keys()),
-        format_func=lambda x: question_data["options"][x],
-        key=f"question_{index}",
-    )
-
-    # Button to go to the next question
-    if st.button("Next"):
+selected_option = st.radio(
+    "Choose an option:",
+    options=list(question_data["options"].keys()),
+    format_func=lambda x: question_data["options"][x],
+    key=f"question_{index}",
+)
+if st.button("Submit"):
+    if selected_option is not None:
         responses[randomized_questions[index][0]] = selected_option
         st.session_state["current_question_index"] = index + 1
         st.session_state["responses"] = responses
+    else:
+        st.error("Please select an option before proceeding.")
+
+    # Button to go to the next question
+    if st.button("Submit"):
+    if selected_option is not None:
+        responses[randomized_questions[index][0]] = selected_option
+        st.session_state["current_question_index"] += 1
+        st.session_state["responses"] = responses
+        st.experimental_rerun()  # Force rerendering
+    else:
+        st.error("Please select an option.")
 
 # Check if there are more questions to display
-if current_question_index < len(randomized_questions):
-    display_question(current_question_index)
+if "applicant_info" not in st.session_state or not st.session_state["applicant_info"].get("submitted"):
+    demographic_info = collect_applicant_info()
+    if demographic_info:
+        st.session_state["applicant_info"] = demographic_info
+        st.session_state["applicant_info"]["submitted"] = True
 else:
-    st.write("Thank you for completing the questionnaire!")
-    st.write(responses)
+    current_question_index = st.session_state.get("current_question_index", 0)
+    if current_question_index < len(randomized_questions):
+        display_question(current_question_index)
+    else:
+        st.write("Thank you for completing the questionnaire!")
+        st.write(st.session_state["responses"])
