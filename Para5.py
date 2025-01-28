@@ -8,81 +8,15 @@ LIFE_EXPECTANCY = {
     "Other": 76  # Default life expectancy for non-binary/unspecified gender
 }
 
-# Initialize session state
-if "applicant_info" not in st.session_state:
-    st.session_state["applicant_info"] = {"submitted": False}
+# Collect applicant demographics
+st.title("Paratransit Eligibility Questionnaire")
+st.sidebar.header("Applicant Information")
 
-if "current_step" not in st.session_state:
-    st.session_state["current_step"] = "demographics"
-
-# Example questions
-questions = {
-    "Q1": {"text": "How often do you use public transit?", "options": {1: "Never", 2: "Rarely", 3: "Sometimes", 4: "Often", 5: "Always"}},
-    "Q2": {"text": "How confident are you navigating bus routes?", "options": {1: "Not at all", 2: "Slightly", 3: "Moderately", 4: "Very", 5: "Extremely"}},
-}
-
-# Shuffle questions
-if "randomized_questions" not in st.session_state:
-    randomized_questions = list(questions.items())
-    random.shuffle(randomized_questions)
-    st.session_state["randomized_questions"] = randomized_questions
-
-if "responses" not in st.session_state:
-    st.session_state["responses"] = {}
-
-if "current_question_index" not in st.session_state:
-    st.session_state["current_question_index"] = 0
-
-# Function to collect applicant demographics
-def collect_applicant_info():
-    if st.session_state["current_step"] == "demographics":
-        st.title("Applicant Demographics")
-        st.write("Please provide your information below:")
-        name = st.text_input("Full Name:", key="name_input")
-        age = st.number_input("Age:", min_value=0, max_value=120, step=1, key="age_input")
-        gender = st.selectbox("Gender:", ["Male", "Female", "Other"], key="gender_input")
-        mobility_device = st.radio("Do you use a mobility device?", ["Yes", "No"], key="mobility_device_input")
-        if st.button("Submit"):
-            if name.strip() and age and gender and mobility_device:
-                st.session_state["applicant_info"] = {
-                    "Name": name.strip(),
-                    "Age": int(age),
-                    "Gender": gender,
-                    "Mobility Device": mobility_device,
-                    "submitted": True,
-                }
-                st.session_state["current_step"] = "questionnaire"
-
-# Function to display questions
-def display_question(index):
-    if index < len(st.session_state["randomized_questions"]):
-        question_data = st.session_state["randomized_questions"][index][1]
-        st.write(f"Question {index + 1}: {question_data['text']}")
-        selected_option = st.radio(
-            "Choose an option:",
-            options=list(question_data["options"].keys()),
-            format_func=lambda x: question_data["options"][x],
-            key=f"radio_question_{index}",
-        )
-        if selected_option:
-            st.session_state["responses"][st.session_state["randomized_questions"][index][0]] = selected_option
-            st.session_state["current_question_index"] += 1
-            st.experimental_rerun()
-
-# Main logic
-if st.session_state["current_step"] == "demographics":
-    collect_applicant_info()
-elif st.session_state["current_step"] == "questionnaire":
-    if st.session_state["current_question_index"] < len(st.session_state["randomized_questions"]):
-        display_question(st.session_state["current_question_index"])
-    else:
-        # If all questions are answered, transition to completion
-        st.session_state["current_step"] = "complete"
-
-if st.session_state["current_step"] == "complete":
-    st.title("Thank You!")
-    st.write("You have completed the questionnaire.")
-    st.json(st.session_state["responses"])
+applicant_info = {}
+applicant_info["Name"] = st.sidebar.text_input("Full Name")
+applicant_info["Age"] = st.sidebar.number_input("Age", min_value=0, step=1)
+applicant_info["Gender"] = st.sidebar.selectbox("Gender", ["Male", "Female", "Other"])
+applicant_info["Mobility Device"] = st.sidebar.selectbox("Do you use a mobility device?", ["Yes", "No"])
 
 # Define the questions
 questions = {
@@ -586,31 +520,27 @@ questions = {
             4: "Always"
         }
     }
-}  
+}
 # Shuffle the questions for randomness
-if "randomized_questions" not in st.session_state:
-    randomized_questions = list(questions.items())
-    random.shuffle(randomized_questions)
-    st.session_state["randomized_questions"] = randomized_questions
-else:
-    randomized_questions = st.session_state["randomized_questions"]
+randomized_questions = list(questions.items())
+random.shuffle(randomized_questions)
 
-if "responses" not in st.session_state:
-    st.session_state["responses"] = {}
+responses = {}
 
-if "current_question_index" not in st.session_state:
-    st.session_state["current_question_index"] = 0
+# Questionnaire display
+for question_key, question_data in randomized_questions:
+    st.subheader(question_data["text"])
+    responses[question_key] = st.radio(
+        "Select an option:",
+        options=list(question_data["options"].keys()),
+        format_func=lambda x: question_data["options"][x]
+    )
 
-
+# Functions for eligibility calculations
 def calculate_score(responses):
-    score = 0
-    middle_count = 0
-    for _, answer in responses.items():
-        score += answer
-        if answer == 2:
-            middle_count += 1
+    score = sum(responses.values())
+    middle_count = list(responses.values()).count(2)
     return score, middle_count
-
 
 def classify_impairments_and_scores(responses):
     classifications = []
@@ -621,31 +551,20 @@ def classify_impairments_and_scores(responses):
         "Hearing Impairment": 0,
     }
 
-    vision_questions = ["Q3", "Q15", "Q24"]
-    cognitive_questions = ["Q4", "Q12", "Q26"]
-    physical_questions = ["Q2", "Q7", "Q29"]
-    auditory_questions = ["Q16", "Q50"]
+    vision_questions = ["Q1"]  # Replace with actual relevant questions
+    auditory_questions = ["Q50"]  # Replace with actual relevant questions
 
     for q in vision_questions:
         category_scores["Vision Impairment"] += responses.get(q, 0)
-    for q in cognitive_questions:
-        category_scores["Cognitive Impairment"] += responses.get(q, 0)
-    for q in physical_questions:
-        category_scores["Physical Impairment"] += responses.get(q, 0)
     for q in auditory_questions:
         category_scores["Hearing Impairment"] += responses.get(q, 0)
 
     if category_scores["Vision Impairment"] > 2:
         classifications.append("Vision Impairment")
-    if category_scores["Cognitive Impairment"] > 2:
-        classifications.append("Cognitive Impairment")
-    if category_scores["Physical Impairment"] > 2:
-        classifications.append("Physical Impairment")
     if category_scores["Hearing Impairment"] > 2:
         classifications.append("Hearing Impairment")
 
     return classifications, category_scores
-
 
 def determine_eligibility(score, middle_count, total_questions, applicant_info):
     age = applicant_info["Age"]
@@ -655,7 +574,7 @@ def determine_eligibility(score, middle_count, total_questions, applicant_info):
     if age > LIFE_EXPECTANCY.get(gender, 76):
         return "Unconditional Eligibility"
 
-    if score >= 120:  # Threshold for high scores
+    if score >= 6:  # Adjusted threshold for demo
         return "Unconditional Eligibility"
 
     if mobility_device == "Yes":
@@ -663,16 +582,10 @@ def determine_eligibility(score, middle_count, total_questions, applicant_info):
 
     if middle_count >= total_questions * 0.75:
         return "Ineligible"
-    elif 80 <= score < 120:  # Adjusted threshold for Conditional Eligibility
+    elif 3 <= score < 6:  # Adjusted threshold for demo
         return "Conditional Eligibility"
     else:
         return "Ineligible"
-
-
-def determine_pca(responses):
-    pca_questions = ["Q5", "Q18"]
-    return any(responses.get(q, 0) > 2 for q in pca_questions)
-
 
 def generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info):
     justification = (
@@ -720,7 +633,7 @@ def generate_justification(score, eligibility, middle_count, classifications, ca
 
     justification += "\n\nDetailed Statistical Breakdown:\n"
     justification += f"- Total Score: {score}\n"
-    justification += f"- Neutral Responses: {middle_count} out of {len(randomized_questions)} questions\n"
+    justification += f"- Neutral Responses: {middle_count} out of {len(questions)} questions\n"
     justification += f"- Challenges Identified in: {', '.join(classifications) if classifications else 'None'}\n"
     justification += (
         f"- Age vs. Life Expectancy: {applicant_info['Age']} years old, expected lifespan for {applicant_info['Gender']} is {LIFE_EXPECTANCY.get(applicant_info['Gender'], 76)} years.\n"
@@ -728,43 +641,11 @@ def generate_justification(score, eligibility, middle_count, classifications, ca
 
     return justification
 
-# Display questions one by one
-def display_question(index):
-    question_data = randomized_questions[index][1]
-    st.write(f"Question {index + 1}: {question_data['text']}")
+# Calculate and display results
+if st.button("Submit Questionnaire"):
+    score, middle_count = calculate_score(responses)
+    classifications, category_scores = classify_impairments_and_scores(responses)
+    eligibility = determine_eligibility(score, middle_count, len(questions), applicant_info)
 
-    # Use st.radio to display options
-    selected_option = st.radio(
-        "Choose an option:",
-        options=list(question_data["options"].keys()),
-        format_func=lambda x: question_data["options"][x],
-        index=0 if f"selected_option_{index}" not in st.session_state else
-        list(question_data["options"].keys()).index(st.session_state[f"selected_option_{index}"]),
-        key=f"radio_question_{index}",
-    )
-
-    # Update the selected option in session state
-    st.session_state[f"selected_option_{index}"] = selected_option
-
-    # Automatically proceed when an option is selected
-    if f"processed_{index}" not in st.session_state:
-        # Save the selected option to responses
-        st.session_state["responses"][randomized_questions[index][0]] = selected_option
-        # Mark the question as processed to avoid loops
-        st.session_state[f"processed_{index}"] = True
-        # Increment the question index
-        st.session_state["current_question_index"] += 1
-
-
-# Initialize session state for the app
-if "current_question_index" not in st.session_state:
-    st.session_state["current_question_index"] = 0
-    st.session_state["responses"] = {}
-
-# Check if there are questions remaining
-if st.session_state["current_question_index"] < len(randomized_questions):
-    display_question(st.session_state["current_question_index"])
-else:
-    st.title("Thank You!")
-    st.write("You have completed the questionnaire.")
-    st.json(st.session_state["responses"])
+    st.success(f"Eligibility Determination: {eligibility}")
+    st.write(generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info))
