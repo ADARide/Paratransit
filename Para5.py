@@ -691,12 +691,12 @@ def generate_justification(score, eligibility, middle_count, classifications, ca
 
     return justification
 
-
 # Display questions one by one
 def display_question(index):
     question_data = randomized_questions[index][1]
     st.write(f"Question {index + 1}: {question_data['text']}")
 
+    # Use st.radio to display options
     selected_option = st.radio(
         "Choose an option:",
         options=list(question_data["options"].keys()),
@@ -704,14 +704,16 @@ def display_question(index):
         key=f"radio_question_{index}",
     )
 
-    if st.button("Submit Answer", key=f"submit_answer_{index}"):
-        if selected_option is not None:
-            st.session_state["responses"][randomized_questions[index][0]] = selected_option
-            st.session_state["current_question_index"] += 1
-            # Use query parameters to track the question index
-            st.query_params.update({"question": st.session_state["current_question_index"]})
-        else:
-            st.error("Please select an option before proceeding.")
+    # Automatically proceed to the next question when an option is selected
+    if selected_option is not None:
+        # Save the selected option to responses
+        st.session_state["responses"][randomized_questions[index][0]] = selected_option
+        # Increment the question index
+        st.session_state["current_question_index"] += 1
+        # Update the query parameters to reflect the next question
+        st.query_params.update({"question": st.session_state["current_question_index"]})
+        # Trigger a rerun to show the next question
+        st.experimental_rerun()
 
 
 # Check if there are questions remaining
