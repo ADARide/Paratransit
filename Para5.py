@@ -690,7 +690,6 @@ def generate_justification(score, eligibility, middle_count, classifications, ca
     )
 
     return justification
-
 # Display questions one by one
 def display_question(index):
     question_data = randomized_questions[index][1]
@@ -711,21 +710,19 @@ def display_question(index):
     st.session_state[f"selected_option_{index}"] = selected_option
 
     # Submit button to move to the next question
-    if st.button("Submit Answer", key=f"submit_answer_{index}"):
+    submit_clicked = st.button("Submit Answer", key=f"submit_answer_{index}")
+    if submit_clicked:
         if st.session_state[f"selected_option_{index}"] is not None:  # Ensure an option is selected
             # Save the selected option to responses
             st.session_state["responses"][randomized_questions[index][0]] = st.session_state[f"selected_option_{index}"]
             # Increment the question index
             st.session_state["current_question_index"] += 1
-            # Trigger a rerun to show the next question
-            st.experimental_rerun()
         else:
             st.error("Please select an option before proceeding.")
 
 # Initialize session state for the app
 if "current_question_index" not in st.session_state:
-    query_params = st.experimental_get_query_params()
-    st.session_state["current_question_index"] = int(query_params.get("question_index", [0])[0])
+    st.session_state["current_question_index"] = 0
     st.session_state["responses"] = {}
 
 # Check if there are questions remaining
