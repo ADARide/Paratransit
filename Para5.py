@@ -704,16 +704,21 @@ def display_question(index):
         key=f"radio_question_{index}",
     )
 
-    # Automatically proceed to the next question when an option is selected
-    if selected_option is not None:
-        # Save the selected option to responses
-        st.session_state["responses"][randomized_questions[index][0]] = selected_option
-        # Increment the question index
-        st.session_state["current_question_index"] += 1
-        # Update the query parameters to reflect the next question
-        st.query_params.update({"question": st.session_state["current_question_index"]})
-        # Trigger a rerun to show the next question
-        st.experimental_rerun()
+    # Submit button to move to the next question
+    if st.button("Submit Answer", key=f"submit_answer_{index}"):
+        if selected_option is not None:  # Check if an option is selected
+            # Save the selected option to responses
+            st.session_state["responses"][randomized_questions[index][0]] = selected_option
+            # Increment the question index
+            st.session_state["current_question_index"] += 1
+            # Update the query parameters to reflect the next question
+            st.experimental_set_query_params(
+                question_index=st.session_state["current_question_index"]
+            )
+            # Trigger a rerun to show the next question
+            st.experimental_rerun()
+        else:
+            st.error("Please select an option before proceeding.")
 
 
 # Check if there are questions remaining
