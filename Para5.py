@@ -696,25 +696,23 @@ def display_question(index):
     question_data = randomized_questions[index][1]
     st.write(f"Question {index + 1}: {question_data['text']}")
 
-    # Automatically proceed when an option is selected
+    # Use st.radio to display options
     selected_option = st.radio(
         "Choose an option:",
         options=list(question_data["options"].keys()),
         format_func=lambda x: question_data["options"][x],
-        index=-1 if f"selected_option_{index}" not in st.session_state else
-        list(question_data["options"].keys()).index(st.session_state[f"selected_option_{index}"]),
         key=f"radio_question_{index}",
     )
 
-    # If an option is selected and not already processed
-    if selected_option and st.session_state.get(f"processed_{index}", False) is False:
-        # Save the selected option
+    # Automatically proceed when an option is selected
+    if selected_option:  # Ensure a valid selection
+        # Save the selected option to responses
         st.session_state["responses"][randomized_questions[index][0]] = selected_option
-        # Mark the question as processed to avoid multiple transitions
-        st.session_state[f"processed_{index}"] = True
-        # Move to the next question
+        # Increment the question index
         st.session_state["current_question_index"] += 1
+        # Trigger a rerun to show the next question
         st.experimental_rerun()
+
 
 # Initialize session state for the app
 if "current_question_index" not in st.session_state:
