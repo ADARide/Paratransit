@@ -696,33 +696,25 @@ def display_question(index):
     question_data = randomized_questions[index][1]
     st.write(f"Question {index + 1}: {question_data['text']}")
 
-    # Use st.radio to display options
-    if f"selected_option_{index}" not in st.session_state:
-        st.session_state[f"selected_option_{index}"] = None
-
-    # Capture the user's choice
+    # Automatically proceed when an option is selected
     selected_option = st.radio(
         "Choose an option:",
         options=list(question_data["options"].keys()),
         format_func=lambda x: question_data["options"][x],
-        index=-1 if st.session_state[f"selected_option_{index}"] is None else
+        index=-1 if f"selected_option_{index}" not in st.session_state else
         list(question_data["options"].keys()).index(st.session_state[f"selected_option_{index}"]),
         key=f"radio_question_{index}",
     )
 
-    # Update the selected option in session state
-    st.session_state[f"selected_option_{index}"] = selected_option
-
-    # Submit button logic
-    if st.button("Submit Answer", key=f"submit_answer_{index}"):
-        if selected_option is not None:
-            # Save the selected option to responses
-            st.session_state["responses"][randomized_questions[index][0]] = selected_option
-            # Increment the question index
-            st.session_state["current_question_index"] += 1
-            st.experimental_rerun()  # Trigger rerun for the next question
-        else:
-            st.error("Please select an option before proceeding.")
+    # If an option is selected and not already processed
+    if selected_option and st.session_state.get(f"processed_{index}", False) is False:
+        # Save the selected option
+        st.session_state["responses"][randomized_questions[index][0]] = selected_option
+        # Mark the question as processed to avoid multiple transitions
+        st.session_state[f"processed_{index}"] = True
+        # Move to the next question
+        st.session_state["current_question_index"] += 1
+        st.experimental_rerun()
 
 # Initialize session state for the app
 if "current_question_index" not in st.session_state:
