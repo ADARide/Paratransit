@@ -10,8 +10,8 @@ LIFE_EXPECTANCY = {
 
 # Collect applicant demographics
 st.title("Paratransit Eligibility Questionnaire")
-st.header("Applicant Demographics")
 
+st.header("Applicant Demographics")
 name = st.text_input("Full Name:")
 age = st.number_input("Age:", min_value=0, max_value=120, step=1)
 gender = st.selectbox("Gender:", ["Male", "Female", "Other"])
@@ -530,136 +530,123 @@ questions = {
             4: "Always"
         }
     }
-}  
+}
 
-# Ensure state persistence
+# Shuffle questions for randomness (Only happens at startup)
+randomized_questions = list(questions.items())
+random.shuffle(randomized_questions)
+
+# Ensure session state persistence
 if "responses" not in st.session_state:
     st.session_state.responses = {key: None for key in questions}
 
 st.header("Questionnaire")
-for key, question in questions.items():
+for key, question in randomized_questions:
     selected_option = st.radio(question["text"], question["options"], index=None, key=key)
-    if selected_option:
-        st.session_state.responses[key] = question["options"].index(selected_option)
 
-# Function to calculate the score
-def calculate_score(responses):
-    score = sum(value for value in responses.values() if value is not None)
-    middle_count = sum(1 for value in responses.values() if value == 2)  # Track neutral answers
-    return score, middle_count
-
-# Function to classify impairments and scores
-def classify_impairments_and_scores(responses):
-    classifications = []
-    category_scores = {
-        "Vision Impairment": sum(responses.get(q, 0) for q in ["Q3", "Q15", "Q24"]),
-        "Cognitive Impairment": sum(responses.get(q, 0) for q in ["Q4", "Q12", "Q26"]),
-        "Physical Impairment": sum(responses.get(q, 0) for q in ["Q2", "Q7", "Q29"]),
-        "Hearing Impairment": sum(responses.get(q, 0) for q in ["Q16", "Q50"]),
-    }
-
-    for category, score in category_scores.items():
-        if score > 2:
-            classifications.append(category)
-
-    return classifications, category_scores
-
-# Function to determine eligibility
-def determine_eligibility(score, middle_count, total_questions, applicant_info):
-    age = applicant_info["Age"]
-    gender = applicant_info["Gender"]
-    mobility_device = applicant_info["Mobility Device"]
-
-    if age > LIFE_EXPECTANCY.get(gender, 76):
-        return "Unconditional Eligibility"
-
-    if score >= 120:
-        return "Unconditional Eligibility"
-
-    if mobility_device == "Yes":
-        return "Conditional Eligibility"
-
-    if middle_count >= total_questions * 0.75:
-        return "Ineligible"
-    elif 80 <= score < 120:
-        return "Conditional Eligibility"
+    if selected_option is not None:
+        st.session_state.responses[key] = question["options"].index(str(selected_option))
     else:
-        return "Ineligible"
+        st.session_state.responses[key] = None  # Prevent error if no selection is made
 
-# Function to determine if a PCA is needed
-def determine_pca(responses):
-    pca_questions = ["Q5", "Q18"]
-    return any(responses.get(q, 0) > 2 for q in pca_questions)
-
-# Function to generate justification
-def generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info):
-    justification = (
-        f"Applicant {applicant_info['Name']} (age {applicant_info['Age']}, gender {applicant_info['Gender']}) "
-        f"achieved an overall score of {score}, resulting in a determination of {eligibility}. "
-    )
-
-    if classifications:
-        justification += f"This determination was influenced by challenges related to: {', '.join(classifications)}. "
-
-    if middle_count > 0:
-        justification += (
-            f"The applicant selected {middle_count} neutral responses, indicating moderate challenges that influenced "
-            f"the eligibility outcome. "
-        )
-
-    total_category_score = sum(category_scores.values())
-    if total_category_score > 0:
-        justification += "\n\nCategory Impact on Transit Eligibility (Percentage Breakdown):\n"
-        for category, score in category_scores.items():
-            percentage = (score / total_category_score) * 100
-            justification += f"- {category}: {percentage:.1f}%\n"
-
-    total_impairments = len(classifications)
-    if total_impairments > 0:
-        proportion = total_impairments / 4
-        justification += (
-            f"A total of {total_impairments} out of 4 potential impairments were identified, "
-            f"indicating {proportion * 100:.1f}% of possible impairments may affect transit eligibility. "
-        )
-    else:
-        justification += "No specific impairments were identified that affect transit eligibility. "
-
-    if eligibility == "Unconditional Eligibility":
-        justification += "The applicant demonstrates severe and consistent barriers to using fixed-route transit services. "
-    elif eligibility == "Conditional Eligibility":
-        justification += (
-            "The applicant shows specific barriers that limit fixed-route transit use under certain conditions, "
-            "such as weather, fatigue, or accessibility challenges. "
-        )
-    else:
-        justification += (
-            "The applicant does not demonstrate sufficient barriers to qualify for paratransit services. "
-        )
-
-    justification += "\n\nDetailed Statistical Breakdown:\n"
-    justification += f"- Total Score: {score}\n"
-    justification += f"- Neutral Responses: {middle_count} out of {len(questions)} questions\n"
-    justification += f"- Challenges Identified in: {', '.join(classifications) if classifications else 'None'}\n"
-    justification += (
-        f"- Age vs. Life Expectancy: {applicant_info['Age']} years old, expected lifespan for {applicant_info['Gender']} is {LIFE_EXPECTANCY.get(applicant_info['Gender'], 76)} years.\n"
-    )
-
-    return justification
-
-# Process results when Submit is clicked
+# Submit button for calculations
 if st.button("Submit Responses"):
     if None in st.session_state.responses.values():
         st.warning("Please answer all questions before submitting.")
     else:
+        def calculate_score(responses):
+            score = sum(responses.values())
+            middle_count = sum(1 for v in responses.values() if v == 2)
+            return score, middle_count
+
+        def classify_impairments_and_scores(responses):
+            classifications = []
+            category_scores = {
+                "Vision Impairment": 0,
+                "Cognitive Impairment": 0,
+                "Physical Impairment": 0,
+                "Hearing Impairment": 0,
+            }
+
+            vision_questions = ["Q3", "Q15", "Q24"]
+            cognitive_questions = ["Q4", "Q12", "Q26"]
+            physical_questions = ["Q2", "Q7", "Q29"]
+            auditory_questions = ["Q16", "Q50"]
+
+            for q in vision_questions:
+                category_scores["Vision Impairment"] += responses.get(q, 0)
+            for q in cognitive_questions:
+                category_scores["Cognitive Impairment"] += responses.get(q, 0)
+            for q in physical_questions:
+                category_scores["Physical Impairment"] += responses.get(q, 0)
+            for q in auditory_questions:
+                category_scores["Hearing Impairment"] += responses.get(q, 0)
+
+            if category_scores["Vision Impairment"] > 2:
+                classifications.append("Vision Impairment")
+            if category_scores["Cognitive Impairment"] > 2:
+                classifications.append("Cognitive Impairment")
+            if category_scores["Physical Impairment"] > 2:
+                classifications.append("Physical Impairment")
+            if category_scores["Hearing Impairment"] > 2:
+                classifications.append("Hearing Impairment")
+
+            return classifications, category_scores
+
+        def determine_eligibility(score, middle_count, total_questions, applicant_info):
+            age = applicant_info["Age"]
+            gender = applicant_info["Gender"]
+            mobility_device = applicant_info["Mobility Device"]
+
+            if age > LIFE_EXPECTANCY.get(gender, 76):
+                return "Unconditional Eligibility"
+            if score >= 120:
+                return "Unconditional Eligibility"
+            if mobility_device == "Yes":
+                return "Conditional Eligibility"
+            if middle_count >= total_questions * 0.75:
+                return "Ineligible"
+            elif 80 <= score < 120:
+                return "Conditional Eligibility"
+            else:
+                return "Ineligible"
+
         score, middle_count = calculate_score(st.session_state.responses)
         classifications, category_scores = classify_impairments_and_scores(st.session_state.responses)
         eligibility = determine_eligibility(score, middle_count, len(questions), applicant_info)
-        pca_needed = determine_pca(st.session_state.responses)
 
-        # Display results
+        def generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info):
+            justification = (
+                f"Applicant {applicant_info['Name']} (age {applicant_info['Age']}, gender {applicant_info['Gender']}) "
+                f"achieved an overall score of {score}, resulting in a determination of {eligibility}. "
+            )
+
+            if classifications:
+                justification += f"This determination was influenced by challenges related to: {', '.join(classifications)}. "
+
+            if middle_count > 0:
+                justification += (
+                    f"The applicant selected {middle_count} neutral responses, indicating moderate challenges that influenced "
+                    f"the eligibility outcome. "
+                )
+
+            total_category_score = sum(category_scores.values())
+            if total_category_score > 0:
+                justification += "\n\nCategory Impact on Transit Eligibility (Percentage Breakdown):\n"
+                for category, score in category_scores.items():
+                    percentage = (score / total_category_score) * 100
+                    justification += f"- {category}: {percentage:.1f}%\n"
+
+            if eligibility == "Unconditional Eligibility":
+                justification += "The applicant demonstrates severe and consistent barriers to using fixed-route transit services. "
+            elif eligibility == "Conditional Eligibility":
+                justification += "The applicant shows specific barriers that limit fixed-route transit use under certain conditions."
+            else:
+                justification += "The applicant does not demonstrate sufficient barriers to qualify for paratransit services. "
+
+            return justification
+
         st.header("Results")
         st.write(f"**Overall Score:** {score}")
         st.write(f"**Eligibility:** {eligibility}")
-        st.write(f"**PCA Required:** {'Yes' if pca_needed else 'No'}")
-        st.write("### Detailed Justification:")
-        st.text(generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info))
+        st.write(generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info))
