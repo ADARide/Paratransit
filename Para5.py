@@ -5,7 +5,27 @@ import random
 LIFE_EXPECTANCY = {
     "Male": 73,
     "Female": 79,
-    "Other": 76  # Default for non-binary/unspecified gender
+    "Other": 76  # Default life expectancy for non-binary/unspecified gender
+}
+
+# Collect applicant demographics
+st.title("Paratransit Eligibility Questionnaire")
+st.header("Applicant Demographics")
+
+name = st.text_input("Full Name:")
+age = st.number_input("Age:", min_value=0, max_value=120, step=1)
+gender = st.selectbox("Gender:", ["Male", "Female", "Other"])
+mobility_device = st.selectbox("Do you use a mobility device?", ["Yes", "No"])
+
+if not name:
+    st.warning("Please enter your name to proceed.")
+    st.stop()
+
+applicant_info = {
+    "Name": name,
+    "Age": age,
+    "Gender": gender,
+    "Mobility Device": mobility_device
 }
 
 # Define the questions
@@ -512,49 +532,23 @@ questions = {
     }
 }  
 
-# Store randomized questions persistently across reruns
-if "randomized_questions" not in st.session_state:
-    st.session_state.randomized_questions = list(questions.items())
-    random.shuffle(st.session_state.randomized_questions)
-
-# Store user responses persistently
+# Ensure state persistence
 if "responses" not in st.session_state:
-    st.session_state.responses = {}
+    st.session_state.responses = {key: None for key in questions}
 
-# Applicant information input
-st.title("Paratransit Eligibility Questionnaire")
-
-st.header("Applicant Demographics")
-name = st.text_input("Full Name:")
-age = st.number_input("Age:", min_value=0, max_value=120, step=1)
-gender = st.selectbox("Gender:", ["Male", "Female", "Other"])
-mobility_device = st.selectbox("Do you use a mobility device?", ["Yes", "No"])
-
-if not name:
-    st.warning("Please enter your name to proceed.")
-    st.stop()
-
-applicant_info = {
-    "Name": name,
-    "Age": age,
-    "Gender": gender,
-    "Mobility Device": mobility_device
-}
-
-# Display Q1 and Q50 only for the form
+# Display questionnaire (Only Q1 and Q50)
 st.header("Questionnaire")
-for key, question in st.session_state.randomized_questions:
-    if key in ["Q1", "Q50"]:  # Only display Q1 and Q50
-        selected_option = st.radio(question["text"], question["options"], index=None, key=key)
-        st.session_state.responses[key] = question["options"].index(selected_option) if selected_option else None
+for key, question in questions.items():
+    selected_option = st.radio(question["text"], question["options"], key=key)
+    st.session_state.responses[key] = question["options"].index(selected_option) if selected_option else None
 
-# Function to calculate score
+# Function to calculate the score
 def calculate_score(responses):
-    score = sum(responses.values())
-    middle_count = sum(1 for v in responses.values() if v == 2)  # Assuming 2 is the "neutral" response
+    score = sum(value for value in responses.values() if value is not None)
+    middle_count = sum(1 for value in responses.values() if value == 2)  # Track neutral answers
     return score, middle_count
 
-# Function to classify impairments
+# Function to classify impairments and scores
 def classify_impairments_and_scores(responses):
     classifications = []
     category_scores = {
@@ -565,7 +559,7 @@ def classify_impairments_and_scores(responses):
     }
 
     for category, score in category_scores.items():
-        if score > 2:  # Threshold for impairment classification
+        if score > 2:
             classifications.append(category)
 
     return classifications, category_scores
@@ -575,13 +569,16 @@ def determine_eligibility(score, middle_count, total_questions, applicant_info):
     age = applicant_info["Age"]
     gender = applicant_info["Gender"]
     mobility_device = applicant_info["Mobility Device"]
-    
+
     if age > LIFE_EXPECTANCY.get(gender, 76):
         return "Unconditional Eligibility"
+
     if score >= 120:
         return "Unconditional Eligibility"
+
     if mobility_device == "Yes":
         return "Conditional Eligibility"
+
     if middle_count >= total_questions * 0.75:
         return "Ineligible"
     elif 80 <= score < 120:
@@ -589,9 +586,10 @@ def determine_eligibility(score, middle_count, total_questions, applicant_info):
     else:
         return "Ineligible"
 
-# Function to determine if a PCA is required
+# Function to determine if a PCA is needed
 def determine_pca(responses):
-    return any(responses.get(q, 0) > 2 for q in ["Q5", "Q18"])
+    pca_questions = ["Q5", "Q18"]
+    return any(responses.get(q, 0) > 2 for q in pca_questions)
 
 # Function to generate justification
 def generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info):
@@ -616,6 +614,16 @@ def generate_justification(score, eligibility, middle_count, classifications, ca
             percentage = (score / total_category_score) * 100
             justification += f"- {category}: {percentage:.1f}%\n"
 
+    total_impairments = len(classifications)
+    if total_impairments > 0:
+        proportion = total_impairments / 4
+        justification += (
+            f"A total of {total_impairments} out of 4 potential impairments were identified, "
+            f"indicating {proportion * 100:.1f}% of possible impairments may affect transit eligibility. "
+        )
+    else:
+        justification += "No specific impairments were identified that affect transit eligibility. "
+
     if eligibility == "Unconditional Eligibility":
         justification += "The applicant demonstrates severe and consistent barriers to using fixed-route transit services. "
     elif eligibility == "Conditional Eligibility":
@@ -628,23 +636,30 @@ def generate_justification(score, eligibility, middle_count, classifications, ca
             "The applicant does not demonstrate sufficient barriers to qualify for paratransit services. "
         )
 
+    justification += "\n\nDetailed Statistical Breakdown:\n"
+    justification += f"- Total Score: {score}\n"
+    justification += f"- Neutral Responses: {middle_count} out of {len(questions)} questions\n"
+    justification += f"- Challenges Identified in: {', '.join(classifications) if classifications else 'None'}\n"
+    justification += (
+        f"- Age vs. Life Expectancy: {applicant_info['Age']} years old, expected lifespan for {applicant_info['Gender']} is {LIFE_EXPECTANCY.get(applicant_info['Gender'], 76)} years.\n"
+    )
+
     return justification
 
-# Submit button
+# Process results when Submit is clicked
 if st.button("Submit Responses"):
-    # Ensure responses are recorded for all questions
-    for key in questions:
-        if key not in st.session_state.responses:
-            st.session_state.responses[key] = 0  # Default to 0 if not answered
+    if None in st.session_state.responses.values():
+        st.warning("Please answer all questions before submitting.")
+    else:
+        score, middle_count = calculate_score(st.session_state.responses)
+        classifications, category_scores = classify_impairments_and_scores(st.session_state.responses)
+        eligibility = determine_eligibility(score, middle_count, len(questions), applicant_info)
+        pca_needed = determine_pca(st.session_state.responses)
 
-    score, middle_count = calculate_score(st.session_state.responses)
-    classifications, category_scores = classify_impairments_and_scores(st.session_state.responses)
-    eligibility = determine_eligibility(score, middle_count, len(questions), applicant_info)
-    pca_needed = determine_pca(st.session_state.responses)
-
-    st.header("Results")
-    st.write(f"**Overall Score:** {score}")
-    st.write(f"**Eligibility:** {eligibility}")
-    st.write(f"**Personal Care Attendant (PCA) Required:** {'Yes' if pca_needed else 'No'}")
-    st.write("### Detailed Justification:")
-    st.text(generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info))
+        # Display results
+        st.header("Results")
+        st.write(f"**Overall Score:** {score}")
+        st.write(f"**Eligibility:** {eligibility}")
+        st.write(f"**PCA Required:** {'Yes' if pca_needed else 'No'}")
+        st.write("### Detailed Justification:")
+        st.text(generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info))
