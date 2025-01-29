@@ -5,7 +5,7 @@ import random
 LIFE_EXPECTANCY = {
     "Male": 73,
     "Female": 79,
-    "Other": 76  # Default life expectancy for non-binary/unspecified gender
+    "Other": 76
 }
 
 # Collect applicant demographics
@@ -28,6 +28,7 @@ applicant_info = {
     "Mobility Device": mobility_device
 }
 
+# Define all 50 questions but only display Q1 and Q50
 # Define the questions
 questions = {
     "Q1": {
@@ -530,7 +531,7 @@ questions = {
             4: "Always"
         }
     }
-}  
+}
 
 # Ensure state persistence
 if "responses" not in st.session_state:
@@ -539,7 +540,7 @@ if "responses" not in st.session_state:
 # Display questionnaire (Only Q1 and Q50)
 st.header("Questionnaire")
 for key, question in questions.items():
-    selected_option = st.radio(question["text"], question["options"], key=key)
+    selected_option = st.radio(question["text"], question["options"], index=None, key=key)
     st.session_state.responses[key] = question["options"].index(selected_option) if selected_option else None
 
 # Function to calculate the score
