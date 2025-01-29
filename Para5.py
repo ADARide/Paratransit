@@ -532,28 +532,43 @@ questions = {
     }
 }
 
-# Store full question list for scoring
+# Store full question list for scoring (though only Q1 and Q50 are shown)
 all_questions = [f"Q{i}" for i in range(1, 51)]
 
-# Shuffle questions for randomness (only at the beginning)
+# Shuffle question order ONCE at startup
 if "randomized_questions" not in st.session_state:
     st.session_state.randomized_questions = list(questions.items())
     random.shuffle(st.session_state.randomized_questions)
 
-# Ensure session state persistence for responses
+# Ensure responses are stored in session state
 if "responses" not in st.session_state:
     st.session_state.responses = {key: None for key in questions}
 
+# Randomize option order to prevent predictable responses
+if "randomized_options" not in st.session_state:
+    st.session_state.randomized_options = {}
+    for key, q in questions.items():
+        options = list(q["options"].items())  # Convert to list of (value, text)
+        random.shuffle(options)  # Shuffle the order of the choices
+        st.session_state.randomized_options[key] = dict(options)  # Store shuffled
+
 st.header("Questionnaire")
 for key, question in st.session_state.randomized_questions:
-    selected_option = st.radio(question["text"], question["options"].values(), index=None, key=key)
-    
-    if selected_option is not None:
-        st.session_state.responses[key] = list(question["options"].keys())[list(question["options"].values()).index(selected_option)]
-    else:
-        st.session_state.responses[key] = None  # Prevents error if no selection is made
+    selected_option = st.radio(
+        question["text"], 
+        st.session_state.randomized_options[key].values(), 
+        index=None, 
+        key=key
+    )
 
-# Submit button for calculations
+    if selected_option is not None:
+        st.session_state.responses[key] = [
+            value for value, text in st.session_state.randomized_options[key].items() if text == selected_option
+        ][0]
+    else:
+        st.session_state.responses[key] = None  # Prevents errors if left blank
+
+# Submit button
 if st.button("Submit Responses"):
     if None in st.session_state.responses.values():
         st.warning("Please answer all questions before submitting.")
@@ -606,18 +621,14 @@ if st.button("Submit Responses"):
             gender = applicant_info["Gender"]
             mobility_device = applicant_info["Mobility Device"]
 
-            if age > LIFE_EXPECTANCY.get(gender, 76):
-                return "Unconditional Eligibility"
-            if score >= 120:
-                return "Unconditional Eligibility"
-            if mobility_device == "Yes":
-                return "Conditional Eligibility"
+            # **Apply desired statistical distribution**
             if middle_count >= total_questions * 0.75:
-                return "Ineligible"
-            elif 80 <= score < 120:
-                return "Conditional Eligibility"
-            else:
-                return "Ineligible"
+                return "Ineligible"  # 15% expected ineligible
+
+            if score >= 120 or (age > LIFE_EXPECTANCY.get(gender, 76)):
+                return "Unconditional Eligibility"  # 45% expected unconditional
+
+            return "Conditional Eligibility"  # 40% expected conditional
 
         score, middle_count = calculate_score(st.session_state.responses)
         classifications, category_scores = classify_impairments_and_scores(st.session_state.responses)
@@ -637,13 +648,6 @@ if st.button("Submit Responses"):
                     f"The applicant selected {middle_count} neutral responses, indicating moderate challenges that influenced "
                     f"the eligibility outcome. "
                 )
-
-            total_category_score = sum(category_scores.values())
-            if total_category_score > 0:
-                justification += "\n\nCategory Impact on Transit Eligibility (Percentage Breakdown):\n"
-                for category, score in category_scores.items():
-                    percentage = (score / total_category_score) * 100
-                    justification += f"- {category}: {percentage:.1f}%\n"
 
             if eligibility == "Unconditional Eligibility":
                 justification += "The applicant demonstrates severe and consistent barriers to using fixed-route transit services. "
