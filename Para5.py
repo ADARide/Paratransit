@@ -510,7 +510,7 @@ questions = {
             4: "Always"
         }
     }
-}  
+}
 
 # Store randomized questions persistently across reruns
 if "randomized_questions" not in st.session_state:
@@ -545,19 +545,23 @@ applicant_info = {
 st.header("Questionnaire")
 for key, question in st.session_state.randomized_questions:
     st.write(question["text"])
-    
-    # Ensure only one checkbox per question is selected
+
     if key not in st.session_state:
         st.session_state[key] = None
 
     selected_option = st.session_state[key]
-    for i, option in enumerate(question["options"]):
-        if st.checkbox(option, key=f"{key}_{i}", value=(selected_option == option)):
-            st.session_state[key] = option
-            # Uncheck all other checkboxes in this question
-            for j in range(len(question["options"])):
-                if j != i:
-                    st.session_state[f"{key}_{j}"] = False
+    options = question["options"]
+
+    # Use radio buttons instead of checkboxes for exclusive selection
+    choice = st.radio(
+        label="Select an option:", 
+        options=options, 
+        index=options.index(selected_option) if selected_option in options else None,
+        key=key
+    )
+
+    if choice:
+        st.session_state[key] = choice
 
 # Submission button to evaluate responses
 if st.button("Submit Responses"):
