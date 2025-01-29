@@ -532,22 +532,26 @@ questions = {
     }
 }
 
-# Shuffle questions for randomness (Only happens at startup)
-randomized_questions = list(questions.items())
-random.shuffle(randomized_questions)
+# Store full question list for scoring
+all_questions = [f"Q{i}" for i in range(1, 51)]
 
-# Ensure session state persistence
+# Shuffle questions for randomness (only at the beginning)
+if "randomized_questions" not in st.session_state:
+    st.session_state.randomized_questions = list(questions.items())
+    random.shuffle(st.session_state.randomized_questions)
+
+# Ensure session state persistence for responses
 if "responses" not in st.session_state:
     st.session_state.responses = {key: None for key in questions}
 
 st.header("Questionnaire")
-for key, question in randomized_questions:
-    selected_option = st.radio(question["text"], question["options"], index=None, key=key)
-
+for key, question in st.session_state.randomized_questions:
+    selected_option = st.radio(question["text"], question["options"].values(), index=None, key=key)
+    
     if selected_option is not None:
-        st.session_state.responses[key] = question["options"].index(str(selected_option))
+        st.session_state.responses[key] = list(question["options"].keys())[list(question["options"].values()).index(selected_option)]
     else:
-        st.session_state.responses[key] = None  # Prevent error if no selection is made
+        st.session_state.responses[key] = None  # Prevents error if no selection is made
 
 # Submit button for calculations
 if st.button("Submit Responses"):
@@ -574,13 +578,17 @@ if st.button("Submit Responses"):
             auditory_questions = ["Q16", "Q50"]
 
             for q in vision_questions:
-                category_scores["Vision Impairment"] += responses.get(q, 0)
+                if q in responses:
+                    category_scores["Vision Impairment"] += responses[q]
             for q in cognitive_questions:
-                category_scores["Cognitive Impairment"] += responses.get(q, 0)
+                if q in responses:
+                    category_scores["Cognitive Impairment"] += responses[q]
             for q in physical_questions:
-                category_scores["Physical Impairment"] += responses.get(q, 0)
+                if q in responses:
+                    category_scores["Physical Impairment"] += responses[q]
             for q in auditory_questions:
-                category_scores["Hearing Impairment"] += responses.get(q, 0)
+                if q in responses:
+                    category_scores["Hearing Impairment"] += responses[q]
 
             if category_scores["Vision Impairment"] > 2:
                 classifications.append("Vision Impairment")
@@ -613,7 +621,7 @@ if st.button("Submit Responses"):
 
         score, middle_count = calculate_score(st.session_state.responses)
         classifications, category_scores = classify_impairments_and_scores(st.session_state.responses)
-        eligibility = determine_eligibility(score, middle_count, len(questions), applicant_info)
+        eligibility = determine_eligibility(score, middle_count, len(all_questions), applicant_info)
 
         def generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info):
             justification = (
