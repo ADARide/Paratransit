@@ -8,26 +8,6 @@ LIFE_EXPECTANCY = {
     "Other": 76  # Default life expectancy for non-binary/unspecified gender
 }
 
-# Collect applicant demographics
-st.title("Paratransit Eligibility Questionnaire")
-
-st.header("Applicant Demographics")
-name = st.text_input("Full Name:")
-age = st.number_input("Age:", min_value=0, max_value=120, step=1)
-gender = st.selectbox("Gender:", ["Male", "Female", "Other"])
-mobility_device = st.selectbox("Do you use a mobility device?", ["Yes", "No"])
-
-if not name:
-    st.warning("Please enter your name to proceed.")
-    st.stop()
-
-applicant_info = {
-    "Name": name,
-    "Age": age,
-    "Gender": gender,
-    "Mobility Device": mobility_device
-}
-
 # Define the questions
 questions = {
     "Q1": {
@@ -532,26 +512,68 @@ questions = {
     }
 }  
 
-# Shuffle the questions for randomness
-randomized_questions = list(questions.items())
-random.shuffle(randomized_questions)
-responses = {}
+# Store randomized questions persistently across reruns
+if "randomized_questions" not in st.session_state:
+    st.session_state.randomized_questions = list(questions.items())
+    random.shuffle(st.session_state.randomized_questions)
 
+# Store responses in session state
+if "responses" not in st.session_state:
+    st.session_state.responses = {key: None for key, _ in st.session_state.randomized_questions}
+
+# Collect applicant demographics
+st.title("Paratransit Eligibility Questionnaire")
+
+st.header("Applicant Demographics")
+name = st.text_input("Full Name:")
+age = st.number_input("Age:", min_value=0, max_value=120, step=1)
+gender = st.selectbox("Gender:", ["Male", "Female", "Other"])
+mobility_device = st.selectbox("Do you use a mobility device?", ["Yes", "No"])
+
+if not name:
+    st.warning("Please enter your name to proceed.")
+    st.stop()
+
+applicant_info = {
+    "Name": name,
+    "Age": age,
+    "Gender": gender,
+    "Mobility Device": mobility_device
+}
+
+# Display questionnaire with checkboxes ensuring only one selection per question
 st.header("Questionnaire")
-for key, question in randomized_questions:
+for key, question in st.session_state.randomized_questions:
     st.write(question["text"])
-    response = st.radio("Select one option:", question["options"], key=key)
-    responses[key] = question["options"].index(response) if response else None
+    
+    # Ensure only one checkbox per question is selected
+    if key not in st.session_state:
+        st.session_state[key] = None
 
+    selected_option = st.session_state[key]
+    for i, option in enumerate(question["options"]):
+        if st.checkbox(option, key=f"{key}_{i}", value=(selected_option == option)):
+            st.session_state[key] = option
+            # Uncheck all other checkboxes in this question
+            for j in range(len(question["options"])):
+                if j != i:
+                    st.session_state[f"{key}_{j}"] = False
+
+# Submission button to evaluate responses
 if st.button("Submit Responses"):
-    if None in responses.values():
+    # Convert session state responses into a usable dictionary
+    st.session_state.responses = {key: st.session_state[key] for key, _ in questions.items()}
+
+    if None in st.session_state.responses.values():
         st.warning("Please answer all questions before submitting.")
     else:
+        # Scoring logic
         def calculate_score(responses):
-            score = sum(responses.values())
-            middle_count = sum(1 for v in responses.values() if v == 2)
+            score = sum([questions[q_key]["options"].index(responses[q_key]) for q_key in questions])
+            middle_count = sum(1 for q_key in questions if responses[q_key] == questions[q_key]["options"][2])
             return score, middle_count
 
+        # Classifications
         def classify_impairments_and_scores(responses):
             classifications = []
             category_scores = {
@@ -567,25 +589,25 @@ if st.button("Submit Responses"):
             auditory_questions = ["Q16", "Q50"]
 
             for q in vision_questions:
-                category_scores["Vision Impairment"] += responses.get(q, 0)
+                if q in responses:
+                    category_scores["Vision Impairment"] += questions[q]["options"].index(responses[q])
             for q in cognitive_questions:
-                category_scores["Cognitive Impairment"] += responses.get(q, 0)
+                if q in responses:
+                    category_scores["Cognitive Impairment"] += questions[q]["options"].index(responses[q])
             for q in physical_questions:
-                category_scores["Physical Impairment"] += responses.get(q, 0)
+                if q in responses:
+                    category_scores["Physical Impairment"] += questions[q]["options"].index(responses[q])
             for q in auditory_questions:
-                category_scores["Hearing Impairment"] += responses.get(q, 0)
+                if q in responses:
+                    category_scores["Hearing Impairment"] += questions[q]["options"].index(responses[q])
 
-            if category_scores["Vision Impairment"] > 2:
-                classifications.append("Vision Impairment")
-            if category_scores["Cognitive Impairment"] > 2:
-                classifications.append("Cognitive Impairment")
-            if category_scores["Physical Impairment"] > 2:
-                classifications.append("Physical Impairment")
-            if category_scores["Hearing Impairment"] > 2:
-                classifications.append("Hearing Impairment")
+            for category, score in category_scores.items():
+                if score > 2:
+                    classifications.append(category)
 
             return classifications, category_scores
 
+        # Determine eligibility
         def determine_eligibility(score, middle_count, total_questions, applicant_info):
             age = applicant_info["Age"]
             gender = applicant_info["Gender"]
@@ -604,6 +626,7 @@ if st.button("Submit Responses"):
             else:
                 return "Ineligible"
 
+        # Generate justification
         def generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info):
             justification = (
                 f"Applicant {applicant_info['Name']} (age {applicant_info['Age']}, gender {applicant_info['Gender']}) "
@@ -638,18 +661,10 @@ if st.button("Submit Responses"):
                     "The applicant does not demonstrate sufficient barriers to qualify for paratransit services. "
                 )
 
-            justification += "\n\nDetailed Statistical Breakdown:\n"
-            justification += f"- Total Score: {score}\n"
-            justification += f"- Neutral Responses: {middle_count} out of {len(questions)} questions\n"
-            justification += f"- Challenges Identified in: {', '.join(classifications) if classifications else 'None'}\n"
-            justification += (
-                f"- Age vs. Life Expectancy: {applicant_info['Age']} years old, expected lifespan for {applicant_info['Gender']} is {LIFE_EXPECTANCY.get(applicant_info['Gender'], 76)} years.\n"
-            )
-
             return justification
 
-        score, middle_count = calculate_score(responses)
-        classifications, category_scores = classify_impairments_and_scores(responses)
+        score, middle_count = calculate_score(st.session_state.responses)
+        classifications, category_scores = classify_impairments_and_scores(st.session_state.responses)
         eligibility = determine_eligibility(score, middle_count, len(questions), applicant_info)
 
         justification = generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info)
