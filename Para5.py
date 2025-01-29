@@ -28,6 +28,41 @@ applicant_info = {
     "Mobility Device": mobility_device
 }
 
+### DSM & Medical Conditions Logging
+st.header("Medical & DSM Diagnoses")
+
+# Sample list of DSM and medical conditions
+medical_conditions = [
+    "Generalized Anxiety Disorder",
+    "Major Depressive Disorder",
+    "Schizophrenia",
+    "Bipolar Disorder",
+    "Autism Spectrum Disorder",
+    "Cerebral Palsy",
+    "Multiple Sclerosis",
+    "Epilepsy",
+    "Chronic Pain Syndrome",
+    "Post-Traumatic Stress Disorder (PTSD)"
+]
+
+# Allow multiple condition selection
+selected_conditions = st.multiselect("Select Diagnoses", medical_conditions)
+
+# Dictionary to store provider details
+if "medical_providers" not in st.session_state:
+    st.session_state.medical_providers = {}
+
+for condition in selected_conditions:
+    st.subheader(f"Provider Information for {condition}")
+    provider_name = st.text_input(f"Provider Name for {condition}", key=f"{condition}_provider")
+    provider_phone = st.text_input(f"Provider Phone for {condition}", key=f"{condition}_phone")
+
+    # Store in session state
+    st.session_state.medical_providers[condition] = {
+        "Provider Name": provider_name,
+        "Provider Phone": provider_phone
+    }
+
 # Define the questions
 questions = {
     "Q1": {
@@ -530,7 +565,7 @@ questions = {
             4: "Always"
         }
     }
-}
+}  
 
 # Store full question list for scoring (though only Q1 and Q50 are shown)
 all_questions = [f"Q{i}" for i in range(1, 51)]
@@ -621,14 +656,13 @@ if st.button("Submit Responses"):
             gender = applicant_info["Gender"]
             mobility_device = applicant_info["Mobility Device"]
 
-            # **Apply desired statistical distribution**
             if middle_count >= total_questions * 0.75:
-                return "Ineligible"  # 15% expected ineligible
+                return "Ineligible"
 
             if score >= 120 or (age > LIFE_EXPECTANCY.get(gender, 76)):
-                return "Unconditional Eligibility"  # 45% expected unconditional
+                return "Unconditional Eligibility"
 
-            return "Conditional Eligibility"  # 40% expected conditional
+            return "Conditional Eligibility"
 
         score, middle_count = calculate_score(st.session_state.responses)
         classifications, category_scores = classify_impairments_and_scores(st.session_state.responses)
@@ -643,12 +677,6 @@ if st.button("Submit Responses"):
             if classifications:
                 justification += f"This determination was influenced by challenges related to: {', '.join(classifications)}. "
 
-            if middle_count > 0:
-                justification += (
-                    f"The applicant selected {middle_count} neutral responses, indicating moderate challenges that influenced "
-                    f"the eligibility outcome. "
-                )
-
             if eligibility == "Unconditional Eligibility":
                 justification += "The applicant demonstrates severe and consistent barriers to using fixed-route transit services. "
             elif eligibility == "Conditional Eligibility":
@@ -662,3 +690,4 @@ if st.button("Submit Responses"):
         st.write(f"**Overall Score:** {score}")
         st.write(f"**Eligibility:** {eligibility}")
         st.write(generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info))
+        st.write("### Medical Provider Details", st.session_state.medical_providers)
