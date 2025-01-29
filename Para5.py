@@ -540,19 +540,11 @@ responses = {}
 st.header("Questionnaire")
 for key, question in randomized_questions:
     st.write(question["text"])
-    response_options = {}
-    for i, option in enumerate(question["options"]):
-        response_options[option] = st.checkbox(option, key=f"{key}_{i}")
-
-    # Ensure only one checkbox is selected per question
-    selected_option = [option for option, checked in response_options.items() if checked]
-    if len(selected_option) > 1:
-        st.error(f"Please select only one option for: {question['text']}")
-    elif len(selected_option) == 1:
-        responses[key] = question["options"].index(selected_option[0])
+    response = st.radio("Select one option:", question["options"], key=key)
+    responses[key] = question["options"].index(response) if response else None
 
 if st.button("Submit Responses"):
-    if len(responses) < len(questions):
+    if None in responses.values():
         st.warning("Please answer all questions before submitting.")
     else:
         def calculate_score(responses):
@@ -612,10 +604,6 @@ if st.button("Submit Responses"):
             else:
                 return "Ineligible"
 
-        def determine_pca(responses):
-            pca_questions = ["Q5", "Q18"]
-            return any(responses.get(q, 0) > 2 for q in pca_questions)
-
         def generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info):
             justification = (
                 f"Applicant {applicant_info['Name']} (age {applicant_info['Age']}, gender {applicant_info['Gender']}) "
@@ -663,7 +651,6 @@ if st.button("Submit Responses"):
         score, middle_count = calculate_score(responses)
         classifications, category_scores = classify_impairments_and_scores(responses)
         eligibility = determine_eligibility(score, middle_count, len(questions), applicant_info)
-        pca_needed = determine_pca(responses)
 
         justification = generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info)
 
@@ -671,5 +658,4 @@ if st.button("Submit Responses"):
         st.write(f"**Overall Score:** {score}")
         st.write(f"**Eligibility:** {eligibility}")
         st.write(f"**Classifications:** {', '.join(classifications) if classifications else 'None'}")
-        st.write(f"**PCA Required:** {'Yes' if pca_needed else 'No'}")
         st.text(justification)
