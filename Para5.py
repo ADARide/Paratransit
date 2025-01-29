@@ -537,12 +537,12 @@ responses = st.session_state.responses
 st.header("Questionnaire")
 for question_key, question_data in st.session_state.randomized_questions:
     st.subheader(question_data["text"])
-    responses[question_key] = st.radio(
-        "Select an option:",
-        options=[None] + list(question_data["options"].keys()),
-        format_func=lambda x: "" if x is None else question_data["options"][x],
-        key=question_key
-    )
+    selected_option = st.session_state.responses.get(question_key, None)
+    for option_key, option_text in question_data["options"].items():
+        if st.checkbox(option_text, key=f"{question_key}_{option_key}", value=(selected_option == option_key)):
+            st.session_state.responses[question_key] = option_key
+        elif st.session_state.responses.get(question_key) == option_key:
+            st.session_state.responses[question_key] = None
 
 # Functions for eligibility calculations
 def calculate_score(responses):
@@ -550,46 +550,39 @@ def calculate_score(responses):
     middle_count = list(responses.values()).count(2)
     return score, middle_count
 
-def determine_eligibility(score, middle_count, total_questions, applicant_info):
-    age = applicant_info["Age"]
-    gender = applicant_info["Gender"]
-    mobility_device = applicant_info["Mobility Device"]
+def classify_impairments_and_scores(responses):
+    classifications = []
+    category_scores = {
+        "Vision Impairment": 0,
+        "Cognitive Impairment": 0,
+        "Physical Impairment": 0,
+        "Hearing Impairment": 0,
+    }
 
-    if age > LIFE_EXPECTANCY.get(gender, 76):
-        return "Unconditional Eligibility"
+    vision_questions = ["Q3", "Q15", "Q24"]
+    cognitive_questions = ["Q5", "Q18", "Q30"]
+    physical_questions = ["Q7", "Q12", "Q22"]
+    auditory_questions = ["Q16", "Q50"]
 
-    if score >= 120:
-        return "Unconditional Eligibility"
+    for q in vision_questions:
+        category_scores["Vision Impairment"] += responses.get(q, 0) or 0
+    for q in cognitive_questions:
+        category_scores["Cognitive Impairment"] += responses.get(q, 0) or 0
+    for q in physical_questions:
+        category_scores["Physical Impairment"] += responses.get(q, 0) or 0
+    for q in auditory_questions:
+        category_scores["Hearing Impairment"] += responses.get(q, 0) or 0
 
-    if mobility_device == "Yes":
-        return "Conditional Eligibility"
+    if category_scores["Vision Impairment"] > 2:
+        classifications.append("Vision Impairment")
+    if category_scores["Cognitive Impairment"] > 2:
+        classifications.append("Cognitive Impairment")
+    if category_scores["Physical Impairment"] > 2:
+        classifications.append("Physical Impairment")
+    if category_scores["Hearing Impairment"] > 2:
+        classifications.append("Hearing Impairment")
 
-    if middle_count >= total_questions * 0.75:
-        return "Ineligible"
-    elif 80 <= score < 120:
-        return "Conditional Eligibility"
-    else:
-        return "Ineligible"
-
-def determine_pca(responses):
-    pca_questions = ["Q5", "Q18"]
-    return any(responses.get(q, 0) > 2 for q in pca_questions)
-
-def generate_justification(score, eligibility, middle_count, classifications, category_scores, applicant_info):
-    justification = (
-        f"Applicant {applicant_info['Name']} (age {applicant_info['Age']}, gender {applicant_info['Gender']}) "
-        f"achieved an overall score of {score}, resulting in a determination of {eligibility}. "
-    )
-
-    if classifications:
-        justification += f"This determination was influenced by challenges related to: {', '.join(classifications)}. "
-
-    justification += "\n\nCategory Impact on Transit Eligibility (Percentage Breakdown):\n"
-    for category, score in category_scores.items():
-        percentage = (score / sum(category_scores.values())) * 100
-        justification += f"- {category}: {percentage:.1f}%\n"
-
-    return justification
+    return classifications, category_scores
 
 # Calculate and display results
 if st.button("Submit Questionnaire"):
